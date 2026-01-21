@@ -1,2 +1,4 @@
 # ProyectIDSM
-Proyect for Security Informatic:
+# Nombre del proyecto: 
+# Problematica a solucionar:
+
