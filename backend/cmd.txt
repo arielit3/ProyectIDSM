@@ -1,0 +1,19 @@
+#DENTRO DE BACKEND:
+Para crear entorno virtual:
+python -m venv venv
+Para activar entorno virtual:
+.\venv\Scripts\activate
+
+#Debes entrar primero en el entorno virtual antes de instalar o correr fastapi
+
+Para instalar fastapi con sus librerias ejecuta:
+pip install fastapi uvicorn psycopg2-binary
+pip install sqlalchemy psycopg2-binary 
+
+Para crear las tablas:
+python init_db.py
+
+Para correr fastapi (cuando ya estes en entorno virtual) ejecuta dentro de BACKEND
+uvicorn main:app --reload
+
+
