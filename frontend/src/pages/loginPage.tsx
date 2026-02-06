@@ -1,7 +1,7 @@
 //Hacer el css del login
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import './loginPage.css';
+import './pages.css';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -63,8 +63,13 @@ const LoginPage: React.FC = () => {
                     <div className="registerSection">
                         <p className="registerText">
                             ¿No tienes cuenta?
-                            {/*Luego pongo la ruta de registro*/}
                         </p>
+                        <button
+                            className="registerButton"
+                            onClick={() => navigate("/register")}
+                        >
+                            Regístrate
+                        </button>
                     </div>
 
                     {mensaje && (
