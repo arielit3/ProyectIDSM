@@ -1,0 +1,313 @@
+/* Estilos compartidos login y registro */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'sans-serif', Arial, sans-serif;
+}
+
+body {
+    background: #ABC270;
+    min-height: 100vh;
+}
+
+/* Botones de enlace */
+.linkButton {
+    background: none;
+    border: none;
+    color: #667eea;
+    cursor: pointer;
+    font-size: inherit;
+    padding: 0;
+}
+
+.linkButton:hover {
+    text-decoration: underline;
+}
+
+/* Contenedor de mensajes */
+.messageContainer {
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 14px;
+    margin: 15px 0;
+}
+
+/* login */
+.containerLogin {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.loginBox {
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.loginHeader {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.loginHeader h1 {
+    color: #333;
+    font-size: 28px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.loginHeader p {
+    color: #666;
+    font-size: 15px;
+}
+
+.loginForm {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.inputsLogin {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inputsLogin label {
+    color: #333;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.inputsLogin input {
+    padding: 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+
+
+.loginButton {
+    background: #FEC868;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin-top: 10px;
+}
+
+
+
+.registerSection {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.registerText {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Registroo */
+.containerRegister {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.registerBox {
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.backButton {
+    background: none;
+    border: none;
+    color: #FEC868;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 8px 0;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s;
+}
+
+.backButton:hover {
+    text-decoration: underline;
+    transform: translateX(-3px);
+}
+
+.registerHeader {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.registerHeader h1 {
+    color: #333;
+    font-size: 28px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.registerHeader p {
+    color: #666;
+    font-size: 15px;
+}
+
+.registerForm {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.inputsRegister {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inputsRegister label {
+    color: #333;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.inputsRegister input {
+    padding: 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+
+
+/* Términos y condiciones */
+.termsContainer {
+    margin: 10px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.termsLabel {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.4;
+}
+
+.termsLabel input[type="checkbox"] {
+    margin-top: 3px;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.termsLabel span {
+    flex: 1;
+}
+
+
+
+.termsLabel span a:hover {
+    text-decoration: underline;
+}
+
+.registerButton {
+    background: #FEC868;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin-top: 10px;
+}
+
+
+
+/* Sección de login en register */
+.loginSection {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.loginText {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Para hacer la página responsiva */
+@media (max-width: 480px) {
+    .loginBox,
+    .registerBox {
+        padding: 30px 20px;
+        margin: 10px;
+    }
+    
+    .loginHeader h1,
+    .registerHeader h1 {
+        font-size: 24px;
+    }
+    
+    .inputsLogin input,
+    .inputsRegister input {
+        padding: 12px;
+        font-size: 15px;
+    }
+    
+    .loginButton,
+    .registerButton {
+        padding: 14px;
+        font-size: 15px;
+    }
+}
+
+/* estilos para placeholders */
+::placeholder {
+    color: #999;
+    opacity: 1;
+}
+
+/* ===== EFECTO DE FOCO EN INPUTS ===== */
+input:focus::placeholder {
+    color: transparent;
+}
+
+
+
+

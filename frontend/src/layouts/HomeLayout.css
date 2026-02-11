@@ -1,0 +1,55 @@
+/*Estilos para la página de inicio */
+.homeLayout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #ABC270;
+    font-family: sans-serif; /*Luego elegimos la letra entre todos, mejor usar una API */
+
+}
+
+.header {
+    padding: 2rem;
+    text-align: center;
+}
+
+/*Estilos para el título */
+.title {
+    font-size: 2.5rem;
+    color: #071E07;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.homeMain{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 2rem;
+}
+
+.homeImageContainer {
+    max-width: 500px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.homeMessage{
+    text-align: center;
+}
+
+.homeStartButton{
+    color:#fff;
+    padding: 8px 22px;
+    border-radius: 6px;
+    background: #FEC868;
+    transition: all 0.2 ease;
+}
+.homeStartButton:active{
+    transform: scale(0.96);
+}
