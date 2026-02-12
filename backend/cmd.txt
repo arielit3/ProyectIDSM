@@ -16,7 +16,7 @@ pip install bcrypt==3.2.2
 
 
 Para crear las tablas:
-python init_db.py
+python init_db.py //antes de instalar debes tener la bd creada, el nombre de la bd es toroeats
 
 Para correr fastapi (cuando ya estes en entorno virtual) ejecuta dentro de BACKEND
 uvicorn main:app --reload
