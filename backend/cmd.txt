@@ -1,4 +1,6 @@
-#DENTRO DE BACKEND:
+#TODO ESTO SE DEBE REALIZAR ANTES DE CUALQUIER COSA#
+MOVERTE DENTRO DE EL BACKEND:
+
 Para crear entorno virtual:
 python -m venv venv
 Para activar entorno virtual:
@@ -18,7 +20,12 @@ pip install bcrypt==3.2.2
 Para crear las tablas:
 python init_db.py //antes de instalar debes tener la bd creada, el nombre de la bd es toroeats
 
-Para correr fastapi (cuando ya estes en entorno virtual) ejecuta dentro de BACKEND
+Para correr fastapi (cuando ya estes en entorno virtual) ejecuta dentro de BACKEND:
 uvicorn main:app --reload
 
+#Para entrar simplemente entra a:
+127.0.0.1:8000/docs
 
+o tambien a:
+localhost:8000/docs
+#
