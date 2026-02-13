@@ -13,7 +13,7 @@ pip install fastapi uvicorn psycopg2-binary
 pip install sqlalchemy psycopg2-binary 
 pip install python-jose passlib[bcrypt] python-multipart
 pip install --upgrade bcrypt
-pip uninstall bcrypt
+
 pip install bcrypt==3.2.2
 
 

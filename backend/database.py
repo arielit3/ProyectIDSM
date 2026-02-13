@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # Esto establece la conexion con la bd
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/toroeats"
+DATABASE_URL = "postgresql://postgres:12345@localhost:5432/toroeats"
 #para que la conexion sea exitosa, es recomendable 
 # que el usuario de pgadmin sea postgres y su contrasenia igual
 

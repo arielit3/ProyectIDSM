@@ -1,8 +1,8 @@
 // src/router/index.tsx
 import { createBrowserRouter } from "react-router-dom";
 import HomeLayout from "../layouts/HomeLayout";
-import LoginPage from "../pages/LoginPage";
-import RegisterPage from "../pages/RegisterPage";
+import LoginPage from "../pages/loginPage";
+import RegisterPage from "../pages/registerPage";
 import DashboardPage from "../pages/DashboardPage";
 import PrivateRoute from "../components/PrivateRoute";
 
