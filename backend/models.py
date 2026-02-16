@@ -16,7 +16,7 @@ class Usuario(Base):
     __tablename__ = "usuarios"
 
     id = Column(Integer, primary_key=True, index=True)
-    apodo = Column(String, nullable=False)
+    apodo = Column(String, nullable=True)
     nombre = Column(String, nullable=False)
     correo = Column(String, unique=True, index=True, nullable=False)
     telefono = Column(String, unique=True)
@@ -25,3 +25,11 @@ class Usuario(Base):
     rol_id = Column(Integer, ForeignKey("rol.id"))
 
     rol = relationship("Rol", back_populates="usuarios")
+
+class Productos(Base):
+    __tablename__ = "productos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    descripcion = Column(String, nullable=False)
+    precio = Column(Integer, nullable=False)
