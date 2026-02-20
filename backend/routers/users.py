@@ -21,6 +21,15 @@ class UsuarioCreate(BaseModel):
 class ModificarApodo(BaseModel):
     apodo: str
 
+class ModificarMatricula(BaseModel):
+    matricula: int
+
+class ModificarTelefono(BaseModel):
+    telefono: str
+
+class ModificarPassword(BaseModel):
+    password: str  
+
 @router.post("/")#damos referencia a el metodo post
 def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     #creamos una funcion, entre parentesis establecemos los datos y su tipo
@@ -121,3 +130,56 @@ def modificar_apodo(
     db.refresh(current_user)
 
     return {"mensaje": "Apodo actualizado correctamente"}
+
+@router.put("/modificar-matricula")
+def modificar_matricula(
+    datos: ModificarMatricula,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    # verificar que la nueva matricula no exista
+    existente = db.query(models.Usuario).filter(
+        models.Usuario.matricula == datos.matricula
+    ).first()
+
+    if existente:
+        raise HTTPException(
+            status_code=400,
+            detail="La matricula ya esta registrada"
+        )
+
+    current_user.matricula = datos.matricula
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"mensaje": "Matricula actualizada correctamente"}
+
+@router.put("/modificar-telefono")
+def modificar_telefono(
+    datos: ModificarTelefono,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    current_user.telefono = datos.telefono
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"mensaje": "Telefono actualizado correctamente"}
+
+@router.put("/modificar-password")
+def modificar_password(
+    datos: ModificarPassword,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    # cifrar nueva contraseña
+    nueva_password = hash_password(datos.password)
+
+    current_user.password = nueva_password
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"mensaje": "Contrasena actualizada correctamente"}
