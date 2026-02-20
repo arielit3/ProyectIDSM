@@ -49,8 +49,33 @@ export async function eliminarUsuario(id: number) {
 }
 
 export async function obtenerUsuarioActual() {
-  const response = await axios.get(`${API_URL}/usuarios/me`, {
-    headers: getAuthHeader(), // envia el token en el header
-  });
-  return response.data;
+   try {
+    const response = await axios.get(`${API_URL}/usuarios/me`, {
+      headers: getAuthHeader(),
+    });
+    console.log("Respuesta completa del backend:", response.data); // <-- Debug
+    return response.data;
+  } catch (error) {
+    console.error("Error al obtener usuario actual:", error);
+    throw error;
+  }
 }
+
+// servicio para actializar usuario
+export const actualizarUsuario = async (userId: number, userData: any) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(userData),
+  });
+  
+  if (!response.ok) {
+    throw new Error("Error al actualizar usuario");
+  }
+  
+  return response.json();
+};

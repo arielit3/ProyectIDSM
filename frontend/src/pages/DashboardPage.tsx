@@ -1,6 +1,5 @@
-// DashboardPage.tsx
 import React, { useEffect, useState } from "react";
-import { listarUsuarios, obtenerUsuarioActual } from "../services/users";
+import { listarUsuarios, obtenerUsuarioActual, actualizarUsuario } from "../services/users";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 
@@ -12,7 +11,15 @@ import VendedorDashboard from "./VendedorDashboard";
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState<{ nombre: string; rol_id: number } | null>(null);
+  const [user, setUser] = useState<{ 
+    id?: number;
+    nombre: string; 
+    rol_id: number;
+    email?: string;
+    matricula?: string;
+    telefono?: string;
+    apodo?: string;
+  } | null>(null);
   const [usuarios, setUsuarios] = useState<any[]>([]);
 
   const handleLogout = () => {
@@ -26,6 +33,20 @@ const DashboardPage: React.FC = () => {
       setUsuarios(data);
     } catch (error) {
       console.error("Error al listar usuarios", error);
+    }
+  };
+
+  const handleUpdateUser = async (updatedData: any) => {
+    if (!user?.id) throw new Error("Usuario no identificado");
+    
+    try {
+      const updatedUser = await actualizarUsuario(user.id, updatedData);
+      // Actualizar el estado local con los nuevos datos
+      setUser(prev => prev ? { ...prev, ...updatedData } : null);
+      return updatedUser;
+    } catch (error) {
+      console.error("Error al actualizar usuario", error);
+      throw error;
     }
   };
 
@@ -51,7 +72,15 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  if (!user) return <p>Cargando...</p>;
+  const getUserInitial = () => {
+    return user?.nombre ? user.nombre.charAt(0).toUpperCase() : "U";
+  };
+
+  if (!user) return (
+    <div className="loading-container">
+      <p>Cargando dashboard...</p>
+    </div>
+  );
 
   return (
     <div className="dashboard-container">
@@ -69,7 +98,7 @@ const DashboardPage: React.FC = () => {
               placeholder="Buscar productos, categorías..." 
               className="search-input"
             />
-            <button type="submit" className="search-btn">Buscar</button>
+            <button type="button" className="search-btn">Buscar</button>
           </div>
         )}
 
@@ -77,13 +106,26 @@ const DashboardPage: React.FC = () => {
           <div className="user-info">
             <span className="user-name">{user.nombre}</span>
             {getRoleBadge(user.rol_id)}
-          </div>          <button onClick={handleLogout} className="logout-btn">
+          </div>
+          
+          {/* Botón de perfil - Navega a la página de perfil */}
+          <button 
+            onClick={() => navigate("/perfil")} 
+            className="profile-btn"
+            title="Ver perfil completo"
+          >
+            <div className="profile-avatar">
+              {getUserInitial()}
+            </div>
+          </button>
+          
+          <button onClick={handleLogout} className="logout-btn">
             Cerrar sesión
           </button>
         </div>
       </nav>
 
-      {/* CONTENIDO PRINCIPAL - Se renderiza según el componente del rol */}
+      {/* CONTENIDO PRINCIPAL */}
       <div className="main-content">
         {user.rol_id === 1 && (
           <AdminDashboard 
