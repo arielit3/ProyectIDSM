@@ -9,7 +9,7 @@ class Rol(Base):
     id = Column(Integer, primary_key=True, index=True)
     rol = Column(String, nullable=False)
 
-    # Relación: un rol puede estar asignado a muchos usuarios
+    # Relacion: un rol puede estar asignado a muchos usuarios
     usuarios = relationship("Usuario", back_populates="rol")
 
 #Cada clase representa una base de datos que nos sirve para la creacion base de las tablas en postgresql
@@ -46,9 +46,9 @@ class Categoria(Base):
     __tablename__ = "categoria"
 
     id = Column(Integer, primary_key=True, index=True)
-    # Nombre de la categoría ("Burritos", "Bebidas", "Postres",etc.)
+    # Nombre de la categoria ("Burritos", "Bebidas", "Postres",etc.)
     nombre = Column(String, nullable=False)
-    # Relación: una categoría puede tener muchos productos
+    # Relación: una categoria puede tener muchos productos
     productos = relationship("Productos", back_populates="categoria")
 
 
@@ -56,10 +56,10 @@ class Productos(Base):
     __tablename__ = "productos"
 
     # Campos principales de nuestros productos 
-    id = Column(Integer, primary_key=True, index=True)  # ID único del producto
+    id = Column(Integer, primary_key=True, index=True)  # ID unico del producto
     vendedor = Column(Integer, index=True, nullable=False)
     nombre = Column(String, nullable=False)
-    # Descripción del producto (ingredientes, tamaño y todo lo que pueda poner los vendedores)
+    # Descripcion del producto (ingredientes, tamaño y todo lo que pueda poner los vendedores)
     descripcion = Column(String, nullable=False)
     # Precio del producto
     precio = Column(Float, nullable=False)
@@ -68,9 +68,9 @@ class Productos(Base):
     # Estado del producto (si tiene el productos o no
     estado = Column(String, nullable=False, default="activo")
     # nueva relacion con categoria, para que cada producto tenga una categoria asignada (Burritos, Bebidas, Postres, etc.)
-    # Llave foránea: los productos pertenecen a una categoría (categoria.id)
+    # Llave foranea: los productos pertenecen a una categoria (categoria.id)
     categoria_id = Column(Integer, ForeignKey("categoria.id"), nullable=True)
-    # Relación: nos permite acceder a la categoría desde el producto -> producto.categoria
+    # Relacion: nos permite acceder a la categoria desde el producto -> producto.categoria
     categoria = relationship("Categoria", back_populates="productos")
     # Para consultarlo quiénes marcaron este producto como favorito: producto.favoritos
     # Para ir del favorito hacia el producto: favorito.productos
@@ -88,7 +88,7 @@ class Favorito(Base):
     # Esto evita que un usuario repita el mismo producto como favorito 2 veces.
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), primary_key=True)
     producto_id = Column(Integer, ForeignKey("productos.id"), primary_key=True)
-    # Relación: favorito -> usuario
+    # Relacion: favorito -> usuario
     usuario = relationship("Usuario", back_populates="favoritos")
-    # Relación: favorito -> producto
+    # Relacion: favorito -> producto
     producto = relationship("Productos", back_populates="favoritos")
