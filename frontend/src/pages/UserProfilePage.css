@@ -58,7 +58,7 @@
 .profile-avatar-large {
   width: 120px;
   height: 120px;
-  background: linear-gradient(135deg, #ABC270, #8faf5c);
+  background: #999;
   border-radius: 60px;
   display: flex;
   align-items: center;
@@ -138,11 +138,7 @@
   transition: all 0.3s;
 }
 
-.edit-button:hover {
-  background-color: #e5b45a;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(254, 200, 104, 0.3);
-}
+
 
 .info-grid {
   display: grid;
