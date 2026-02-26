@@ -32,6 +32,7 @@ class Usuario(Base):
     matricula = Column(Integer, nullable=False)
     password = Column(String, nullable=False)
     estado_id = Column(Integer, ForeignKey("estado_usuario.id"), nullable=False, default=1)
+    
     estado = relationship("EstadoUsuario", back_populates="usuarios")
 
     rol_id = Column(Integer, ForeignKey("rol.id"))
