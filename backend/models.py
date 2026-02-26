@@ -2,7 +2,7 @@ from sqlalchemy import Column, Float, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base
 
-
+#modelos de la bd
 class Rol(Base):
     __tablename__ = "rol"
 
@@ -20,7 +20,7 @@ class EstadoUsuario(Base):
 
     usuarios = relationship("Usuario", back_populates="estado")
 
-
+#Cada clase representa una base de datos que nos sirve para la creacion base de las tablas en postgresql
 class Usuario(Base):
     __tablename__ = "usuarios"
 
