@@ -2,25 +2,25 @@ from sqlalchemy import Column, Float, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base
 
-#modelos de la bd
+
 class Rol(Base):
     __tablename__ = "rol"
 
     id = Column(Integer, primary_key=True, index=True)
     rol = Column(String, nullable=False)
 
-    # Relacion: un rol puede estar asignado a muchos usuarios
+    # Un rol los pueden  tener muchos usuarios
     usuarios = relationship("Usuario", back_populates="rol")
-#NUEVO: tabla aparte para estados de usuario (3FN)
-# Motivo: evitamos repetir strings ("activo", "inactivo", etc.) en cada usuario y usamos un ID.
+
 class EstadoUsuario(Base):
     __tablename__ = "estado_usuario"
 
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String, nullable=False, unique=True)  # Ej: activo / inactivo / bloqueado
+    nombre = Column(String, nullable=False, unique=True)  # activo / inactivo / bloqueado
 
     usuarios = relationship("Usuario", back_populates="estado")
-#Cada clase representa una base de datos que nos sirve para la creacion base de las tablas en postgresql
+
+
 class Usuario(Base):
     __tablename__ = "usuarios"
 
@@ -31,72 +31,62 @@ class Usuario(Base):
     telefono = Column(String, unique=True)
     matricula = Column(Integer, nullable=False)
     password = Column(String, nullable=False)
-    estado = Column(String, nullable=False, default="activo")
-    #estado del usuario (activo/inactivo/bloqueado)
-    #para que Funcionara: guarda si el usuario está disponible o le damos de baja.
-    #Default:sirve para que  siempre que agregemos un usario queda como "activo".
-    rol_id = Column(Integer, ForeignKey("rol.id"))
+    estado_id = Column(Integer, ForeignKey("estado_usuario.id"), nullable=False, default=1)
+    estado = relationship("EstadoUsuario", back_populates="usuarios")
 
+    rol_id = Column(Integer, ForeignKey("rol.id"))
     rol = relationship("Rol", back_populates="usuarios")
- 
-    # Nuevo favoritos del usuario
-    # Relación: un usuario puede tener muchos favoritos (cada favorito liga usuario al producto)
-    # ¿Por qué también existe y lo agregue en Favoritos?
-    # - Para poder volver del favorito hacia el usuario: favorito.usuario
-    # Eso es lo que hace todo  "bidireccional" y asi  evitamos consultas manuales.
+
+    # Favoritos del usuario
     favoritos = relationship(
         "Favorito",
         back_populates="usuario",
-        cascade="all, delete-orphan"  # si borramos el usuario, se borran sus favoritos
+        cascade="all, delete-orphan"
     )
-# Nuevo tabla categoria
+
+   
+#con esto  podemos consultar usuario,productos y asegurar que el vendedor exista.
+    productos = relationship("Productos", back_populates="vendedor")
+
+
 class Categoria(Base):
     __tablename__ = "categoria"
 
     id = Column(Integer, primary_key=True, index=True)
-    # Nombre de la categoria ("Burritos", "Bebidas", "Postres",etc.)
     nombre = Column(String, nullable=False)
-    # Relación: una categoria puede tener muchos productos
+
     productos = relationship("Productos", back_populates="categoria")
 
 
 class Productos(Base):
     __tablename__ = "productos"
 
-    # Campos principales de nuestros productos 
-    id = Column(Integer, primary_key=True, index=True)  # ID unico del producto
-    vendedor = Column(Integer, index=True, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+
+   # antes era vendedor lo teniamos como (Integer). 
+   # Ahora es vendedor_id con FK a usuarios.id porque lo hice: integridad referencial y la NF3 (el vendedor debe existir en usuarios).
+    vendedor_id = Column(Integer, ForeignKey("usuarios.id"), index=True, nullable=False)
+    vendedor = relationship("Usuario", back_populates="productos")
     nombre = Column(String, nullable=False)
-    # Descripcion del producto (ingredientes, tamaño y todo lo que pueda poner los vendedores)
     descripcion = Column(String, nullable=False)
-    # Precio del producto
     precio = Column(Float, nullable=False)
-    # Stock disponibilidad de los  productos
     stock = Column(Integer, nullable=False, default=0)
-    # Estado del producto (si tiene el productos o no
-    estado = Column(String, nullable=False, default="activo")
-    # nueva relacion con categoria, para que cada producto tenga una categoria asignada (Burritos, Bebidas, Postres, etc.)
-    # Llave foranea: los productos pertenecen a una categoria (categoria.id)
     categoria_id = Column(Integer, ForeignKey("categoria.id"), nullable=True)
-    # Relacion: nos permite acceder a la categoria desde el producto -> producto.categoria
     categoria = relationship("Categoria", back_populates="productos")
-    # Para consultarlo quiénes marcaron este producto como favorito: producto.favoritos
-    # Para ir del favorito hacia el producto: favorito.productos
+
     favoritos = relationship(
         "Favorito",
         back_populates="producto",
-        cascade="all, delete-orphan"  # si borras el producto, se borran sus favoritos
+        cascade="all, delete-orphan"
     )
 
 
-# nueva tabla para manejar los favoritos de los usuarios, es una tabla intermedia entre Usuario y Productos
+# aqui esta esta Tabla intermedia para favoritos (evita el  duplicado con PK compuesta:la clave primaria son dos columnas juntas”)
 class Favorito(Base):
     __tablename__ = "favorito"
-    # usuario_id y producto_id forman la "llave compuesta"
-    # Esto evita que un usuario repita el mismo producto como favorito 2 veces.
+
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), primary_key=True)
     producto_id = Column(Integer, ForeignKey("productos.id"), primary_key=True)
-    # Relacion: favorito -> usuario
+
     usuario = relationship("Usuario", back_populates="favoritos")
-    # Relacion: favorito -> producto
     producto = relationship("Productos", back_populates="favoritos")
