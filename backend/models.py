@@ -11,7 +11,15 @@ class Rol(Base):
 
     # Relacion: un rol puede estar asignado a muchos usuarios
     usuarios = relationship("Usuario", back_populates="rol")
+#NUEVO: tabla aparte para estados de usuario (3FN)
+# Motivo: evitamos repetir strings ("activo", "inactivo", etc.) en cada usuario y usamos un ID.
+class EstadoUsuario(Base):
+    __tablename__ = "estado_usuario"
 
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False, unique=True)  # Ej: activo / inactivo / bloqueado
+
+    usuarios = relationship("Usuario", back_populates="estado")
 #Cada clase representa una base de datos que nos sirve para la creacion base de las tablas en postgresql
 class Usuario(Base):
     __tablename__ = "usuarios"
