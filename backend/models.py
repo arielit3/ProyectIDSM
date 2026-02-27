@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Float #colocamos float
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -25,3 +25,11 @@ class Usuario(Base):
     rol_id = Column(Integer, ForeignKey("rol.id"))
 
     rol = relationship("Rol", back_populates="usuarios")
+#Creacion de clase tipo producto 
+class Producto(Base):
+    __tablename__="productos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    descripcion = Column(String, nullable=False)
+    precio = Column(Float, nullable=False)

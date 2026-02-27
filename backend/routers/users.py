@@ -30,6 +30,8 @@ class ModificarTelefono(BaseModel):
 class ModificarPassword(BaseModel):
     password: str  
 
+
+
 @router.post("/")#damos referencia a el metodo post
 def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     #creamos una funcion, entre parentesis establecemos los datos y su tipo
