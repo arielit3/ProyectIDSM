@@ -61,21 +61,117 @@ export async function obtenerUsuarioActual() {
   }
 }
 
-// servicio para actializar usuario
+// ============ NUEVOS ENDPOINTS PARA MODIFICAR PERFIL ============
+
+/**
+ * Modifica el apodo del usuario actual
+ * @param apodo - Nuevo apodo
+ */
+export async function modificarApodo(apodo: string) {
+  const response = await axios.put(
+    `${API_URL}/usuarios/modificar-apodo`,
+    { apodo },
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
+/**
+ * Modifica la matrícula del usuario actual
+ * @param matricula - Nueva matrícula (número)
+ */
+export async function modificarMatricula(matricula: number) {
+  const response = await axios.put(
+    `${API_URL}/usuarios/modificar-matricula`,
+    { matricula },
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
+/**
+ * Modifica el teléfono del usuario actual
+ * @param telefono - Nuevo teléfono
+ */
+export async function modificarTelefono(telefono: string) {
+  const response = await axios.put(
+    `${API_URL}/usuarios/modificar-telefono`,
+    { telefono },
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
+/**
+ * Modifica la contraseña del usuario actual
+ * @param password - Nueva contraseña
+ */
+export async function modificarPassword(password: string) {
+  const response = await axios.put(
+    `${API_URL}/usuarios/modificar-password`,
+    { password },
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
+// servicio para actualizar usuario - AHORA USA LOS NUEVOS ENDPOINTS
 export const actualizarUsuario = async (userId: number, userData: any) => {
-  const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(userData),
-  });
+  const promises = [];
+  const resultados = [];
   
-  if (!response.ok) {
-    throw new Error("Error al actualizar usuario");
+  // Actualizar apodo si viene en los datos
+  if (userData.apodo !== undefined) {
+    try {
+      const result = await modificarApodo(userData.apodo || "");
+      resultados.push({ campo: "apodo", resultado: result });
+    } catch (error) {
+      console.error("Error al actualizar apodo:", error);
+      throw error;
+    }
   }
   
-  return response.json();
+  // Actualizar matrícula si viene en los datos
+  if (userData.matricula !== undefined) {
+    try {
+      const matriculaNum = typeof userData.matricula === 'string' 
+        ? parseInt(userData.matricula) 
+        : userData.matricula;
+      
+      if (!isNaN(matriculaNum)) {
+        const result = await modificarMatricula(matriculaNum);
+        resultados.push({ campo: "matricula", resultado: result });
+      }
+    } catch (error) {
+      console.error("Error al actualizar matrícula:", error);
+      throw error;
+    }
+  }
+  
+  // Actualizar teléfono si viene en los datos
+  if (userData.telefono !== undefined) {
+    try {
+      const result = await modificarTelefono(userData.telefono || "");
+      resultados.push({ campo: "telefono", resultado: result });
+    } catch (error) {
+      console.error("Error al actualizar teléfono:", error);
+      throw error;
+    }
+  }
+  
+  // Actualizar contraseña si viene en los datos
+  if (userData.password) {
+    try {
+      const result = await modificarPassword(userData.password);
+      resultados.push({ campo: "password", resultado: result });
+    } catch (error) {
+      console.error("Error al actualizar contraseña:", error);
+      throw error;
+    }
+  }
+  
+  return { 
+    mensaje: "Perfil actualizado correctamente",
+    resultados: resultados 
+  };
 };

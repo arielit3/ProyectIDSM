@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { obtenerUsuarioActual } from "../services/users";
+import { obtenerUsuarioActual, actualizarUsuario } from "../services/users";
 import "./UserProfilePage.css";
 
 /**
   Componente UserProfilePage - Página de perfil de usuario
   Este componente muestra la información del perfil del usuario actual y permite
-  editarla, ahorita solo es simulación porque falta que esté listo el endpoint de actualización
+  editarla usando los endpoints del backend
 
  */
 const UserProfilePage: React.FC = () => {
@@ -136,6 +136,11 @@ const UserProfilePage: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditedUser(prev => ({ ...prev, [name]: value }));
+    
+    // Limpiar errores específicos cuando el usuario empieza a escribir
+    if (name === 'password' || name === 'confirmPassword') {
+      setUpdateError("");
+    }
   };
 
   /**
@@ -169,74 +174,127 @@ const UserProfilePage: React.FC = () => {
   };
 
   /**
-   * SIMULACIÓN de envío del formulario de edición
-    
-    NOTA: Esta es una versión simula en lo que está listo el endpoint
-    de actualización. Solo actualiza visualmente los datos en el frontend aún sin hacer peticiones al back 
-
+   * Envío del formulario de edición - AHORA CON ENDPOINTS REALES
+   * 
+   * NOTA: Esta versión usa los endpoints del backend para actualizar
+   * apodo, matrícula, teléfono y contraseña
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) return;
     
-    // Simular éxito sin validaciones
-    console.log("Datos que se enviarían:", {
-      ...editedUser,
-      password: editedUser.password ? "***" : "",
-    });
-    
-    setUpdateSuccess(true);
-    
-    // Crear objeto con los datos actualizados SOLO si realmente cambiaron
-    const updatedData: any = {};
+    // Validar CAPTCHA
+    const userAnswer = parseInt(captchaUserAnswer);
+    if (userAnswer !== captchaData.answer) {
+      setCaptchaError("Respuesta incorrecta. ¿Eres un robot?");
+      generateCaptcha();
+      setCaptchaUserAnswer("");
+      return;
+    }
+
+    // Validar contraseñas si se intenta cambiar
+    if (editedUser.password || editedUser.confirmPassword) {
+      if (!editedUser.password || !editedUser.confirmPassword) {
+        setUpdateError("Ambos campos de contraseña son requeridos");
+        return;
+      }
+      if (editedUser.password !== editedUser.confirmPassword) {
+        setUpdateError("Las contraseñas no coinciden");
+        return;
+      }
+      if (editedUser.password.length < 6) {
+        setUpdateError("La contraseña debe tener al menos 6 caracteres");
+        return;
+      }
+    }
+
+    // Preparar datos para actualizar
+    const updateData: any = {};
     
     // Verificar cada campo individualmente antes de actualizar
     // Esto evita sobrescribir con valores vacíos o sin cambios
     
-    // Campo nombre
-    if (editedUser.nombre && editedUser.nombre !== user.nombre) {
-      updatedData.nombre = editedUser.nombre;
-    }
+    // NOTA: El nombre y correo NO se pueden modificar según los endpoints actuales
+    // Solo se actualizan apodo, matrícula, teléfono y contraseña
     
     // Campo apodo
     if (editedUser.apodo !== (user.apodo || "")) {
-      updatedData.apodo = editedUser.apodo || null;
+      updateData.apodo = editedUser.apodo || "";
     }
     
-    // Campo correo 
-    if (editedUser.correo && editedUser.correo !== (user.correo || "")) {
-      updatedData.correo = editedUser.correo;
-    }
-    
-    // Campo matrícula
+    // Campo matrícula - convertir a número si tiene valor
     if (editedUser.matricula && editedUser.matricula !== String(user.matricula || "")) {
-      updatedData.matricula = editedUser.matricula;
+      const matriculaNum = parseInt(editedUser.matricula);
+      if (!isNaN(matriculaNum)) {
+        updateData.matricula = matriculaNum;
+      }
     }
     
     // Campo teléfono
     if (editedUser.telefono && editedUser.telefono !== String(user.telefono || "")) {
-      updatedData.telefono = editedUser.telefono;
+      updateData.telefono = editedUser.telefono;
     }
     
-    // Actualizar el usuario solo con los campos que cambiaron
-    if (Object.keys(updatedData).length > 0) {
+    // Campo contraseña (solo si se proporcionó)
+    if (editedUser.password) {
+      updateData.password = editedUser.password;
+    }
+
+    // Verificar si hay cambios
+    if (Object.keys(updateData).length === 0) {
+      setUpdateError("No hay cambios para guardar");
+      return;
+    }
+
+    setIsLoading(true);
+    setUpdateError("");
+    
+    try {
+      // Usar la función actualizarUsuario que ahora llama a los endpoints del backend
+      const result = await actualizarUsuario(user.id!, updateData);
+      
+      console.log("Resultado de la actualización:", result);
+      
+      // Actualizar el estado local con los nuevos datos
       setUser(prev => {
         if (!prev) return prev;
-        return { ...prev, ...updatedData };
+        const updatedUser = { ...prev };
+        
+        if (updateData.apodo !== undefined) {
+          updatedUser.apodo = updateData.apodo;
+        }
+        if (updateData.matricula !== undefined) {
+          updatedUser.matricula = updateData.matricula;
+        }
+        if (updateData.telefono !== undefined) {
+          updatedUser.telefono = updateData.telefono;
+        }
+        // Nota: la contraseña no se guarda en el estado por seguridad
+        
+        return updatedUser;
       });
-      console.log("Campos actualizados:", updatedData);
-    } else {
-      console.log("No hubo cambios en los campos");
-    }
-    
-    
-    setTimeout(() => {
-      setIsEditing(false);
-      setUpdateSuccess(false);
+      
+      setUpdateSuccess(true);
+      setTimeout(() => {
+        setIsEditing(false);
+        setUpdateSuccess(false);
+      }, 2000);
+    } catch (error: any) {
+      console.error("Error al actualizar:", error);
+      
+      // Mostrar mensaje de error específico del backend
+      const errorMsg = error.response?.data?.detail || 
+                       error.message || 
+                       "Error al actualizar los datos";
+      setUpdateError(errorMsg);
+      
+      // Regenerar CAPTCHA en caso de error
+      generateCaptcha();
       setCaptchaUserAnswer("");
-      setCaptchaError("");
-    }, 1500);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   /**
@@ -356,17 +414,16 @@ const UserProfilePage: React.FC = () => {
             </div>
           ) : (
             /**
-             
-              Formulario para editar los datos del usuario
-              
-              Por ahora es solo visual, no hace peticiones reales
-            
+             * 
+             * Formulario para editar los datos del usuario
+             * Ahora con conexión real al backend
+             * 
              */
             <div className="profile-edit-card">
               <h3>Editar Perfil</h3>
               
               <form onSubmit={handleSubmit} className="edit-form">
-                {/* Campo nombre */}
+                {/* Campo nombre - DESHABILITADO porque no se puede modificar */}
                 <div className="form-group">
                   <label>Nombre:</label>
                   <input
@@ -375,7 +432,9 @@ const UserProfilePage: React.FC = () => {
                     value={editedUser.nombre}
                     onChange={handleInputChange}
                     placeholder="Tu nombre"
+                    disabled // No se puede modificar según endpoints
                   />
+                  <small style={{ color: '#666', fontSize: '12px' }}>El nombre no se puede modificar</small>
                 </div>
 
                 {/* Campo apodo */}
@@ -390,7 +449,7 @@ const UserProfilePage: React.FC = () => {
                   />
                 </div>
 
-                {/* Campo correo  */}
+                {/* Campo correo - DESHABILITADO porque no se puede modificar */}
                 <div className="form-group">
                   <label>Correo electrónico:</label>
                   <input
@@ -399,7 +458,9 @@ const UserProfilePage: React.FC = () => {
                     value={editedUser.correo}
                     onChange={handleInputChange}
                     placeholder="Tu correo electrónico"
+                    disabled // No se puede modificar según endpoints
                   />
+                  <small style={{ color: '#666', fontSize: '12px' }}>El correo no se puede modificar</small>
                 </div>
 
                 {/* Fila con matrícula y teléfono */}
@@ -452,7 +513,7 @@ const UserProfilePage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Sección CAPTCHA - Simulación de seguridad */}
+                {/* Sección CAPTCHA - Verificación de seguridad */}
                 <div className="captcha-section">
                   <label>Verificación de seguridad:</label>
                   <div className="captcha-question">
