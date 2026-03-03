@@ -68,4 +68,4 @@ class Favorito(Base):
     producto_id = Column(Integer, ForeignKey("productos.id"), primary_key=True)
 
     usuario = relationship("Usuario", back_populates="favoritos")
-    producto = relationship("Productos", back_populates="favoritos")
+    producto = relationship("Productos", back_populates="favoritos")# update models
