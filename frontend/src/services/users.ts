@@ -17,6 +17,7 @@ export async function crearUsuario(data:/*Todos los datos se guardan dentro de u
   matricula: number; //Datos que enviamos a la peticion
   password: string; //Datos que enviamos a la peticion
   rol_id: number;             //Datos que enviamos a la peticion
+  recaptcha_token?: string; // 👈 AGREGADO (opcional por si acaso)
 }) //una vez se enviamos los datos
  {
   //creamos una constante, esta la usaremos como metodo de envio de datos/*
@@ -66,11 +67,12 @@ export async function obtenerUsuarioActual() {
 /**
  * Modifica el apodo del usuario actual
  * @param apodo - Nuevo apodo
+ * @param recaptchaToken - Token de reCAPTCHA (opcional por ahora)
  */
-export async function modificarApodo(apodo: string) {
+export async function modificarApodo(apodo: string, recaptchaToken?: string) {
   const response = await axios.put(
     `${API_URL}/usuarios/modificar-apodo`,
-    { apodo },
+    { apodo, ...(recaptchaToken && { recaptcha_token: recaptchaToken }) }, // 👈 Solo incluir si existe
     { headers: getAuthHeader() }
   );
   return response.data;
@@ -79,11 +81,12 @@ export async function modificarApodo(apodo: string) {
 /**
  * Modifica la matrícula del usuario actual
  * @param matricula - Nueva matrícula (número)
+ * @param recaptchaToken - Token de reCAPTCHA (opcional por ahora)
  */
-export async function modificarMatricula(matricula: number) {
+export async function modificarMatricula(matricula: number, recaptchaToken?: string) {
   const response = await axios.put(
     `${API_URL}/usuarios/modificar-matricula`,
-    { matricula },
+    { matricula, ...(recaptchaToken && { recaptcha_token: recaptchaToken }) }, // 👈 Solo incluir si existe
     { headers: getAuthHeader() }
   );
   return response.data;
@@ -92,11 +95,12 @@ export async function modificarMatricula(matricula: number) {
 /**
  * Modifica el teléfono del usuario actual
  * @param telefono - Nuevo teléfono
+ * @param recaptchaToken - Token de reCAPTCHA (opcional por ahora)
  */
-export async function modificarTelefono(telefono: string) {
+export async function modificarTelefono(telefono: string, recaptchaToken?: string) {
   const response = await axios.put(
     `${API_URL}/usuarios/modificar-telefono`,
-    { telefono },
+    { telefono, ...(recaptchaToken && { recaptcha_token: recaptchaToken }) }, // 👈 Solo incluir si existe
     { headers: getAuthHeader() }
   );
   return response.data;
@@ -105,11 +109,12 @@ export async function modificarTelefono(telefono: string) {
 /**
  * Modifica la contraseña del usuario actual
  * @param password - Nueva contraseña
+ * @param recaptchaToken - Token de reCAPTCHA (opcional por ahora)
  */
-export async function modificarPassword(password: string) {
+export async function modificarPassword(password: string, recaptchaToken?: string) {
   const response = await axios.put(
     `${API_URL}/usuarios/modificar-password`,
-    { password },
+    { password, ...(recaptchaToken && { recaptcha_token: recaptchaToken }) }, // 👈 Solo incluir si existe
     { headers: getAuthHeader() }
   );
   return response.data;
@@ -120,10 +125,13 @@ export const actualizarUsuario = async (userId: number, userData: any) => {
   const promises = [];
   const resultados = [];
   
+  // Extraer el token si existe
+  const recaptchaToken = userData.recaptcha_token;
+  
   // Actualizar apodo si viene en los datos
   if (userData.apodo !== undefined) {
     try {
-      const result = await modificarApodo(userData.apodo || "");
+      const result = await modificarApodo(userData.apodo || "", recaptchaToken);
       resultados.push({ campo: "apodo", resultado: result });
     } catch (error) {
       console.error("Error al actualizar apodo:", error);
@@ -139,7 +147,7 @@ export const actualizarUsuario = async (userId: number, userData: any) => {
         : userData.matricula;
       
       if (!isNaN(matriculaNum)) {
-        const result = await modificarMatricula(matriculaNum);
+        const result = await modificarMatricula(matriculaNum, recaptchaToken);
         resultados.push({ campo: "matricula", resultado: result });
       }
     } catch (error) {
@@ -151,7 +159,7 @@ export const actualizarUsuario = async (userId: number, userData: any) => {
   // Actualizar teléfono si viene en los datos
   if (userData.telefono !== undefined) {
     try {
-      const result = await modificarTelefono(userData.telefono || "");
+      const result = await modificarTelefono(userData.telefono || "", recaptchaToken);
       resultados.push({ campo: "telefono", resultado: result });
     } catch (error) {
       console.error("Error al actualizar teléfono:", error);
@@ -162,7 +170,7 @@ export const actualizarUsuario = async (userId: number, userData: any) => {
   // Actualizar contraseña si viene en los datos
   if (userData.password) {
     try {
-      const result = await modificarPassword(userData.password);
+      const result = await modificarPassword(userData.password, recaptchaToken);
       resultados.push({ campo: "password", resultado: result });
     } catch (error) {
       console.error("Error al actualizar contraseña:", error);

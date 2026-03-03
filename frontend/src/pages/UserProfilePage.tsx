@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioActual, actualizarUsuario } from "../services/users";
+import ReCAPTCHA from "react-google-recaptcha";
 import "./UserProfilePage.css";
 
 /**
   Componente UserProfilePage - Página de perfil de usuario
   Este componente muestra la información del perfil del usuario actual y permite
-  editarla usando los endpoints del backend
+  editarla usando los endpoints del backend con verificación reCAPTCHA
 
  */
 const UserProfilePage: React.FC = () => {
   const navigate = useNavigate();
+  const recaptchaRef = useRef<ReCAPTCHA>(null); // Referencia para el componente reCAPTCHA
   
   /**
     Estado del usuario - almacena los datos actuales del perfil
@@ -48,12 +50,10 @@ const UserProfilePage: React.FC = () => {
   });
   
   /**
-   * Estados para el CAPTCHA
-   * Simula una verificación de seguridad simple
+   * Estados para reCAPTCHA
    */
-  const [captchaData, setCaptchaData] = useState({ num1: 0, num2: 0, operator: '+', answer: 0 });
-  const [captchaUserAnswer, setCaptchaUserAnswer] = useState("");
-  const [captchaError, setCaptchaError] = useState("");
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = useState("");
   
   /**
    * Estados para manejar la actualización
@@ -73,11 +73,7 @@ const UserProfilePage: React.FC = () => {
       try {
         setLoading(true);
         const data = await obtenerUsuarioActual();
-        console.log("Datos del usuario recibidos:", data); // Para debug
-        
-        // Verificar qué campos vienen del backend
-        console.log("Campo correo:", data.correo);
-        console.log("Campo email (si existe):", data.email);
+        console.log("Datos del usuario recibidos:", data);
         
         setUser(data);
         // Inicializar el formulario de edición con los datos actuales
@@ -102,27 +98,6 @@ const UserProfilePage: React.FC = () => {
   }, [navigate]);
 
   /**
-    Genera un nuevo CAPTCHA con operación aleatoria
-    Se usa para simular verificación de seguridad
-   */
-  const generateCaptcha = () => {
-    const num1 = Math.floor(Math.random() * 10) + 1;
-    const num2 = Math.floor(Math.random() * 10) + 1;
-    const operators = ['+', '-', '*'];
-    const operator = operators[Math.floor(Math.random() * operators.length)];
-    
-    let answer;
-    switch(operator) {
-      case '+': answer = num1 + num2; break;
-      case '-': answer = num1 - num2; break;
-      case '*': answer = num1 * num2; break;
-      default: answer = num1 + num2;
-    }
-    
-    setCaptchaData({ num1, num2, operator, answer });
-  };
-
-  /**
     Obtiene la inicial del nombre para el avatar
    */
   const getInitial = () => {
@@ -144,13 +119,12 @@ const UserProfilePage: React.FC = () => {
   };
 
   /**
-    Activa el modo edición y genera un nuevo CAPTCHA
+    Activa el modo edición
    */
   const handleEditClick = () => {
     setIsEditing(true);
-    generateCaptcha();
-    setCaptchaUserAnswer("");
-    setCaptchaError("");
+    setRecaptchaToken(null);
+    setRecaptchaError("");
     setUpdateError("");
     setUpdateSuccess(false);
   };
@@ -166,30 +140,37 @@ const UserProfilePage: React.FC = () => {
         apodo: user.apodo || "",
         matricula: user.matricula ? String(user.matricula) : "",
         telefono: user.telefono ? String(user.telefono) : "",
-        correo: user.correo || "", // Usando 'correo'
+        correo: user.correo || "",
         password: "",
         confirmPassword: "",
       });
     }
+    // Resetear reCAPTCHA
+    if (recaptchaRef.current) {
+      recaptchaRef.current.reset();
+    }
+    setRecaptchaToken(null);
   };
 
   /**
-   * Envío del formulario de edición - AHORA CON ENDPOINTS REALES
-   * 
-   * NOTA: Esta versión usa los endpoints del backend para actualizar
-   * apodo, matrícula, teléfono y contraseña
+   * Función para cuando se completa el reCAPTCHA
+   */
+  const handleRecaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token);
+    setRecaptchaError("");
+  };
+
+  /**
+   * Envío del formulario de edición con verificación reCAPTCHA
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) return;
     
-    // Validar CAPTCHA
-    const userAnswer = parseInt(captchaUserAnswer);
-    if (userAnswer !== captchaData.answer) {
-      setCaptchaError("Respuesta incorrecta. ¿Eres un robot?");
-      generateCaptcha();
-      setCaptchaUserAnswer("");
+    // Validar reCAPTCHA
+    if (!recaptchaToken) {
+      setRecaptchaError("Por favor, verifica que no eres un robot");
       return;
     }
 
@@ -212,18 +193,11 @@ const UserProfilePage: React.FC = () => {
     // Preparar datos para actualizar
     const updateData: any = {};
     
-    // Verificar cada campo individualmente antes de actualizar
-    // Esto evita sobrescribir con valores vacíos o sin cambios
-    
-    // NOTA: El nombre y correo NO se pueden modificar según los endpoints actuales
     // Solo se actualizan apodo, matrícula, teléfono y contraseña
-    
-    // Campo apodo
     if (editedUser.apodo !== (user.apodo || "")) {
       updateData.apodo = editedUser.apodo || "";
     }
     
-    // Campo matrícula - convertir a número si tiene valor
     if (editedUser.matricula && editedUser.matricula !== String(user.matricula || "")) {
       const matriculaNum = parseInt(editedUser.matricula);
       if (!isNaN(matriculaNum)) {
@@ -231,27 +205,26 @@ const UserProfilePage: React.FC = () => {
       }
     }
     
-    // Campo teléfono
     if (editedUser.telefono && editedUser.telefono !== String(user.telefono || "")) {
       updateData.telefono = editedUser.telefono;
     }
     
-    // Campo contraseña (solo si se proporcionó)
     if (editedUser.password) {
       updateData.password = editedUser.password;
     }
 
-    // Verificar si hay cambios
     if (Object.keys(updateData).length === 0) {
       setUpdateError("No hay cambios para guardar");
       return;
     }
 
+    // Añadir el token de reCAPTCHA a los datos
+    updateData.recaptcha_token = recaptchaToken;
+
     setIsLoading(true);
     setUpdateError("");
     
     try {
-      // Usar la función actualizarUsuario que ahora llama a los endpoints del backend
       const result = await actualizarUsuario(user.id!, updateData);
       
       console.log("Resultado de la actualización:", result);
@@ -270,28 +243,36 @@ const UserProfilePage: React.FC = () => {
         if (updateData.telefono !== undefined) {
           updatedUser.telefono = updateData.telefono;
         }
-        // Nota: la contraseña no se guarda en el estado por seguridad
         
         return updatedUser;
       });
       
       setUpdateSuccess(true);
+      
+      // Resetear reCAPTCHA
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+      setRecaptchaToken(null);
+      
       setTimeout(() => {
         setIsEditing(false);
         setUpdateSuccess(false);
       }, 2000);
+      
     } catch (error: any) {
       console.error("Error al actualizar:", error);
       
-      // Mostrar mensaje de error específico del backend
       const errorMsg = error.response?.data?.detail || 
                        error.message || 
                        "Error al actualizar los datos";
       setUpdateError(errorMsg);
       
-      // Regenerar CAPTCHA en caso de error
-      generateCaptcha();
-      setCaptchaUserAnswer("");
+      // Resetear reCAPTCHA en caso de error
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+      setRecaptchaToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -306,17 +287,14 @@ const UserProfilePage: React.FC = () => {
 
   /**
    * Función para mostrar valores de forma segura
-   * Si el valor es null, undefined o vacío, muestra "No especificado"
    */
   const displayValue = (value: string | number | null | undefined) => {
-    // Si es null o undefined
     if (value === null || value === undefined) {
       return <span className="no-value">No especificado</span>;
     }
     
     const stringValue = String(value);
     
-    // Si está vacío después de convertir a string
     if (stringValue.trim() === "") {
       return <span className="no-value">No especificado</span>;
     }
@@ -376,7 +354,7 @@ const UserProfilePage: React.FC = () => {
 
         <div className="profile-main">
           {!isEditing ? (
-            
+            // MODO VISUALIZACIÓN
             <div className="profile-info-card">
               <div className="card-header">
                 <h3>Información Personal</h3>
@@ -393,7 +371,7 @@ const UserProfilePage: React.FC = () => {
                 
                 <div className="info-item">
                   <span className="info-label">Correo electrónico:</span>
-                  <span className="info-value">{displayValue(user.correo)}</span> {/* Usamos user.correo */}
+                  <span className="info-value">{displayValue(user.correo)}</span>
                 </div>
                 
                 <div className="info-item">
@@ -413,17 +391,12 @@ const UserProfilePage: React.FC = () => {
               </div>
             </div>
           ) : (
-            /**
-             * 
-             * Formulario para editar los datos del usuario
-             * Ahora con conexión real al backend
-             * 
-             */
+            // MODO EDICIÓN
             <div className="profile-edit-card">
               <h3>Editar Perfil</h3>
               
               <form onSubmit={handleSubmit} className="edit-form">
-                {/* Campo nombre - DESHABILITADO porque no se puede modificar */}
+                {/* Campo nombre - DESHABILITADO */}
                 <div className="form-group">
                   <label>Nombre:</label>
                   <input
@@ -432,7 +405,7 @@ const UserProfilePage: React.FC = () => {
                     value={editedUser.nombre}
                     onChange={handleInputChange}
                     placeholder="Tu nombre"
-                    disabled // No se puede modificar según endpoints
+                    disabled
                   />
                   <small style={{ color: '#666', fontSize: '12px' }}>El nombre no se puede modificar</small>
                 </div>
@@ -449,7 +422,7 @@ const UserProfilePage: React.FC = () => {
                   />
                 </div>
 
-                {/* Campo correo - DESHABILITADO porque no se puede modificar */}
+                {/* Campo correo - DESHABILITADO */}
                 <div className="form-group">
                   <label>Correo electrónico:</label>
                   <input
@@ -458,7 +431,7 @@ const UserProfilePage: React.FC = () => {
                     value={editedUser.correo}
                     onChange={handleInputChange}
                     placeholder="Tu correo electrónico"
-                    disabled // No se puede modificar según endpoints
+                    disabled
                   />
                   <small style={{ color: '#666', fontSize: '12px' }}>El correo no se puede modificar</small>
                 </div>
@@ -513,21 +486,16 @@ const UserProfilePage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Sección CAPTCHA - Verificación de seguridad */}
-                <div className="captcha-section">
+                {/* Sección reCAPTCHA */}
+                <div className="recaptcha-section">
                   <label>Verificación de seguridad:</label>
-                  <div className="captcha-question">
-                    ¿Cuánto es {captchaData.num1} {captchaData.operator} {captchaData.num2}?
-                  </div>
-                  <input
-                    type="number"
-                    value={captchaUserAnswer}
-                    onChange={(e) => setCaptchaUserAnswer(e.target.value)}
-                    placeholder="Tu respuesta"
-                    className="captcha-input"
-                    disabled={isLoading}
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                    onChange={handleRecaptchaChange}
+                    theme="light"
                   />
-                  {captchaError && <div className="error-message">{captchaError}</div>}
+                  {recaptchaError && <div className="error-message">{recaptchaError}</div>}
                 </div>
 
                 {/* Mensajes de error/éxito */}

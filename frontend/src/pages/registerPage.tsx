@@ -1,12 +1,13 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import ReCAPTCHA from "react-google-recaptcha";
 import "./pages.css";
-import { crearUsuario } from "../services/users"; // Servicio que conecta con el backend
+import { crearUsuario } from "../services/users";
 
 const RegisterPage: React.FC = () => {
-  const navigate = useNavigate(); // nos permite reedirigir
-
-  // Con esto podemos guardar los valores que el usuario escriba/ingrese
+  const navigate = useNavigate();
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
+  
   const [formData, setFormData] = React.useState({
     nombre: "",
     email: "",
@@ -16,28 +17,29 @@ const RegisterPage: React.FC = () => {
     aceptarTerminos: false,
   });
 
-  // mensajes de validacion/exito en el registro
   const [mensaje, setMensaje] = React.useState("");
   const [mensajeColor, setMensajeColor] = React.useState("red");
+  const [recaptchaToken, setRecaptchaToken] = React.useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = React.useState("");
 
-  /*Esto se ejecuta cuando el usuario escribe en el input, cada cambio actualiza 
-  incluso el estado de el formData con el nuevo valor, guardando los datos automaticamente*/
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    if (mensaje) setMensaje(""); //se limpia mensajes anteriores en tbox
+    if (mensaje) setMensaje("");
   };
 
-  /*Esta funcion la usamos para enviar datos de el formulario, lo primero que hace es validar que los campos
-  que son obligatorios esten completos, luego de esto si todo esta bien, llama a el servicio de crearUsuario esto
-  para usar el endpoint de el backend y enviarle los datos en el formato requerido*/
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); 
+  const handleRecaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token);
+    setRecaptchaError("");
+  };
 
-    //validaciones antes de enviar
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    // Validaciones del formulario
     if (!formData.nombre.trim()) {
       setMensaje("El nombre es obligatorio");
       setMensajeColor("red");
@@ -64,48 +66,62 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    // Validar reCAPTCHA
+    if (!recaptchaToken) {
+      setRecaptchaError("Por favor, verifica que no eres un robot");
+      return;
+    }
+
     try {
-      // Llamada al backend: POST /usuarios/
       const nuevo = await crearUsuario({
-        //creamos un nuevo objeto temporal que se usa para almacenar los datos
         nombre: formData.nombre,
-        correo: formData.email, 
+        correo: formData.email,
         telefono: formData.telefono,
-        matricula: parseInt(formData.matricula), //convertimos de string a numero
+        matricula: parseInt(formData.matricula),
         password: formData.password,
-        rol_id: 3, // al registrarse, por automatico el rol base es 3, que es comprador
+        rol_id: 3,
+        recaptcha_token: recaptchaToken, //Aquí sale error porque aún no lo integro al back
       });
 
-      // Si la peticion fue exitosa
       setMensaje(`Usuario ${nuevo.nombre} creado correctamente`);
       setMensajeColor("green");
-
-      // te reedirige a el login despues de el registro
-      navigate("/login");
+      
+      // Resetear reCAPTCHA
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+      setRecaptchaToken(null);
+      
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+      
     } catch (error: any) {
-      // si hubo un error en la peticion como el rechazo de datos, el formato esta mal o algo
-      // nuevo: si el backend devuelve un error controlado (ejemplo correo duplicado), se muestra el mensaje que viene en error.response.data.detail
       if (error.response?.status === 400) {
-        setMensaje(error.response.data.detail); // muestra "El correo ya esta registrado"
+        setMensaje(error.response.data.detail);
       } else {
         setMensaje("Error al crear usuario");
       }
       setMensajeColor("red");
       console.error(error);
+      
+      // Resetear reCAPTCHA en caso de error
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+      setRecaptchaToken(null);
     }
   }
 
   return (
-    //en el return creamos la estructura html de el registro
     <div className="containerRegister">
       <div className="registerBox">
         <div className="registerHeader">
           <h1>Registro</h1>
         </div>
 
-        {/* Formulario de registro */}
         <form onSubmit={handleSubmit} className="registerForm">
-          {/* Campo Nombre */}
+          {/* Todos tus campos existentes se mantienen igual */}
           <div className="inputsRegister">
             <label htmlFor="nombre">Nombre *</label>
             <input
@@ -118,7 +134,6 @@ const RegisterPage: React.FC = () => {
             />
           </div>
 
-          {/* Campo Email */}
           <div className="inputsRegister">
             <label htmlFor="email">Email *</label>
             <input
@@ -131,7 +146,6 @@ const RegisterPage: React.FC = () => {
             />
           </div>
 
-          {/* Campo Telefono */}
           <div className="inputsRegister">
             <label htmlFor="telefono">Telefono *</label>
             <input
@@ -144,7 +158,6 @@ const RegisterPage: React.FC = () => {
             />
           </div>
 
-          {/* Campo Matricula */}
           <div className="inputsRegister">
             <label htmlFor="matricula">Matricula *</label>
             <input
@@ -157,7 +170,6 @@ const RegisterPage: React.FC = () => {
             />
           </div>
 
-          {/* Campo Contrasenia */}
           <div className="inputsRegister">
             <label htmlFor="password">Contrasena *</label>
             <input
@@ -170,7 +182,21 @@ const RegisterPage: React.FC = () => {
             />
           </div>
 
-          {/* Checkbox de terminos */}
+          {/* Sección reCAPTCHA - NUEVO */}
+          <div className="recaptcha-section" style={{ margin: '20px 0' }}>
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+              onChange={handleRecaptchaChange}
+              theme="light"
+            />
+            {recaptchaError && (
+              <div className="error-message" style={{ color: 'red', fontSize: '14px', marginTop: '5px' }}>
+                {recaptchaError}
+              </div>
+            )}
+          </div>
+
           <div className="termsContainer">
             <label className="termsLabel">
               <input
@@ -183,19 +209,16 @@ const RegisterPage: React.FC = () => {
             </label>
           </div>
 
-          {/* Boton de registro */}
           <button type="submit" className="registerButton">
             Registrarse
           </button>
 
-          {/* Mensaje de estado */}
           {mensaje && (
             <div className="messageContainer" style={{ color: mensajeColor }}>
               {mensaje}
             </div>
           )}
 
-          {/* Link para ir al login */}
           <div className="loginSection">
             <p className="loginText">
               ¿Ya tienes cuenta?{" "}
