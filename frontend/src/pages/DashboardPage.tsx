@@ -119,8 +119,22 @@ const DashboardPage: React.FC = () => {
             </div>
           </button>
           
-          <button onClick={handleLogout} className="logout-btn">
-            Cerrar sesión
+          {/* Botón de cerrar sesión como icono de puerta */}
+          <button 
+            onClick={handleLogout} 
+            className="logout-icon-btn"
+            title="Cerrar sesión"
+          >
+            <svg 
+              className="logout-icon" 
+              viewBox="0 0 24 24" 
+              width="24" 
+              height="24" 
+              fill="currentColor"
+            >
+              <path d="M16 13v-2H7V8l-5 4 5 4v-3h7z"/>
+              <path d="M20 3h-9c-1.1 0-2 .9-2 2v4h2V5h9v14h-9v-4H9v4c0 1.1.9 2 2 2h9c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+            </svg>
           </button>
         </div>
       </nav>
