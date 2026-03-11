@@ -30,12 +30,6 @@ class ModificarTelefono(BaseModel):
 class ModificarPassword(BaseModel):
     password: str  
 
-class ModificarCorreo(BaseModel):
-    correo: str
-
-class ModificarNombre(BaseModel):
-    nombre: str  # nombre completo del usuario
-
 @router.post("/")#damos referencia a el metodo post
 def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     #creamos una funcion, entre parentesis establecemos los datos y su tipo
@@ -143,10 +137,23 @@ def modificar_matricula(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    raise HTTPException(
-        status_code=403,
-        detail="La matricula no puede ser modificada"
-    )
+    # verificar que la nueva matricula no exista
+    existente = db.query(models.Usuario).filter(
+        models.Usuario.matricula == datos.matricula
+    ).first()
+
+    if existente:
+        raise HTTPException(
+            status_code=400,
+            detail="La matricula ya esta registrada"
+        )
+
+    current_user.matricula = datos.matricula
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"mensaje": "Matricula actualizada correctamente"}
 
 @router.put("/modificar-telefono")
 def modificar_telefono(
@@ -176,42 +183,3 @@ def modificar_password(
     db.refresh(current_user)
 
     return {"mensaje": "Contrasena actualizada correctamente"}
-
-@router.put("/modificar-correo")
-def modificar_correo(
-    datos: ModificarCorreo,
-    db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(get_current_user)
-):
-
-    # verificar que el correo no exista
-    existente = db.query(models.Usuario).filter(
-        models.Usuario.correo == datos.correo
-    ).first()
-
-    if existente:
-        raise HTTPException(
-            status_code=400,
-            detail="El correo ya esta registrado"
-        )
-
-    current_user.correo = datos.correo
-
-    db.commit()
-    db.refresh(current_user)
-
-    return {"mensaje": "Correo actualizado correctamente"}
-
-@router.put("/modificar-nombre")
-def modificar_nombre(
-    datos: ModificarNombre,
-    db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(get_current_user)
-):
-
-    current_user.nombre = datos.nombre
-
-    db.commit()
-    db.refresh(current_user)
-
-    return {"mensaje": "Nombre actualizado correctamente"}
