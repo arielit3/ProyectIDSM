@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import models
 from deps import get_db, get_current_user
 from auth import hash_password
+from recaptcha import verify_recaptcha  # Importamos la función de verificación de reCAPTCHA
 
 # Se define el router con prefijo /usuarios
 router = APIRouter(prefix="/usuarios", tags=["Users"])
@@ -17,24 +18,33 @@ class UsuarioCreate(BaseModel):
     matricula: int
     password: str
     rol_id: int
+    recaptcha_token: str  # Campo para el token de reCAPTCHA
 
+# Modelos para modificar datos del usuario (TODOS deben incluir recaptcha_token)
 class ModificarApodo(BaseModel):
     apodo: str
+    recaptcha_token: str 
 
 class ModificarMatricula(BaseModel):
     matricula: int
-
+    recaptcha_token: str  
 class ModificarTelefono(BaseModel):
     telefono: str
+    recaptcha_token: str  
 
 class ModificarPassword(BaseModel):
-    password: str  
+    password: str
+    recaptcha_token: str 
 
-@router.post("/")#damos referencia a el metodo post
-def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+@router.post("/")  # damos referencia a el metodo post
+async def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     #creamos una funcion, entre parentesis establecemos los datos y su tipo
     """Usuarios es igual a la clase, lo que ahce que usuario sea una instancia temporal que
     debe recibir los valores que tiene, db nos sirve para las dependencias y asi conectar con la bd"""
+    
+    # VERIFICAR reCAPTCHA PRIMERO
+    await verify_recaptcha(usuario.recaptcha_token)
+    
     # Verificar si ya existe un usuario con el mismo correo
     existente = db.query(models.Usuario).filter(models.Usuario.correo == usuario.correo).first()
     #existente realiza una busqueda, donde en la tabla de usuarios, filtramos a los usuarios por correo y buscamos
@@ -65,7 +75,7 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     #confirmamos envio
     db.refresh(nuevo_usuario)
     #refrescamos a el objeto temporal para que se vacie
-    return nuevo_usuario#regresamos a el nuevo usuario
+    return nuevo_usuario  #regresamos a el nuevo usuario
 
 @router.get("/")  # ruta protegida
 def listar_usuarios(
@@ -106,8 +116,6 @@ def eliminar_usuario_por_matricula(
     db.commit()
     return {"mensaje": f"Usuario con matricula {matricula} eliminado correctamente"}
 
-
-
 @router.get("/me")
 def obtener_usuario_actual(
     current_user: models.Usuario = Depends(get_current_user)
@@ -117,12 +125,15 @@ def obtener_usuario_actual(
     #de esta forma mantenemos la seguridad de que el usuario y token esten unidos
     return current_user
 
-@router.put("/modificar-apodo") #Ruth- añadir modificar apodo, ruta protegida
-def modificar_apodo(
+@router.put("/modificar-apodo")  # Ruta protegida
+async def modificar_apodo(  
     datos: ModificarApodo,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    # 👇 VERIFICAR reCAPTCHA
+    await verify_recaptcha(datos.recaptcha_token)
+    
     # actualizar el apodo del usuario autenticado
     current_user.apodo = datos.apodo
 
@@ -132,11 +143,14 @@ def modificar_apodo(
     return {"mensaje": "Apodo actualizado correctamente"}
 
 @router.put("/modificar-matricula")
-def modificar_matricula(
+async def modificar_matricula(  
     datos: ModificarMatricula,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #VERIFICAR reCAPTCHA
+    await verify_recaptcha(datos.recaptcha_token)
+    
     # verificar que la nueva matricula no exista
     existente = db.query(models.Usuario).filter(
         models.Usuario.matricula == datos.matricula
@@ -156,11 +170,14 @@ def modificar_matricula(
     return {"mensaje": "Matricula actualizada correctamente"}
 
 @router.put("/modificar-telefono")
-def modificar_telefono(
+async def modificar_telefono(  #  HACER ASYNC
     datos: ModificarTelefono,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #  VERIFICAR reCAPTCHA
+    await verify_recaptcha(datos.recaptcha_token)
+    
     current_user.telefono = datos.telefono
 
     db.commit()
@@ -169,11 +186,14 @@ def modificar_telefono(
     return {"mensaje": "Telefono actualizado correctamente"}
 
 @router.put("/modificar-password")
-def modificar_password(
+async def modificar_password(  
     datos: ModificarPassword,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    
+    await verify_recaptcha(datos.recaptcha_token)
+    
     # cifrar nueva contraseña
     nueva_password = hash_password(datos.password)
 
