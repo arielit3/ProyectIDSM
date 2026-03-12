@@ -7,27 +7,91 @@ from deps import get_db, get_current_user
 router = APIRouter(prefix="/productos", tags=["Productos"])
 #la clase de producto 
 class ProductoCreate(BaseModel):
+    vendedor_id: int
     nombre: str
     descripcion: str
     precio: float
+    stock: int
 
 @router.post("/")
 def crear_producto(
     producto: ProductoCreate,
     db: Session = Depends(get_db),
 ):
-    # creamos un nuevo producto
-    nuevo_producto = models.Producto(
+
+    nuevo_producto = models.Productos(
+        vendedor_id=producto.vendedor_id,
         nombre=producto.nombre,
         descripcion=producto.descripcion,
         precio=producto.precio,
+        stock=producto.stock
     )
 
     db.add(nuevo_producto)
-    #agregamos a el nuevo producto, para esto usamos la conexion con la bd y enviamos los datos que tenemos#
     db.commit()
-    #confirmamos envio
     db.refresh(nuevo_producto)
-    #refrescamos a el objeto temporal para que se vacie
+
     return nuevo_producto
-    #regresamos a el nuevo producto
+
+
+
+@router.post("/{producto_id}/favorito")
+def agregar_favorito(
+    producto_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+
+    # verificar si ya existe en favoritos
+    existente = db.query(models.Favorito).filter(
+        models.Favorito.usuario_id == current_user.id,
+        models.Favorito.producto_id == producto_id
+    ).first()
+
+    if existente:
+        raise HTTPException(status_code=400, detail="Ya está en favoritos")
+
+    # crear favorito
+    favorito = models.Favorito(
+        usuario_id=current_user.id,
+        producto_id=producto_id
+    )
+
+    db.add(favorito)
+    db.commit()
+
+    return {"mensaje": "Producto agregado a favoritos"}
+
+@router.get("/favoritos")
+def ver_favoritos(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+
+    favoritos = db.query(models.Favorito).filter(
+        models.Favorito.usuario_id == current_user.id
+    ).all()
+
+    return favoritos
+
+@router.delete("/{producto_id}/favorito")
+def quitar_favorito(
+    producto_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+
+    favorito = db.query(models.Favorito).filter(
+        models.Favorito.usuario_id == current_user.id,
+        models.Favorito.producto_id == producto_id
+    ).first()
+
+    if not favorito:
+        raise HTTPException(status_code=404, detail="Favorito no encontrado")
+
+    db.delete(favorito)
+    db.commit()
+
+    return {"mensaje": "Producto eliminado de favoritos"}
+
+

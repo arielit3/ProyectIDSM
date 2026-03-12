@@ -1,9 +1,13 @@
-import React, { useState } from "react";
-import { crearProducto, type ProductoCreate } from "../services/products";
+import React, { useState, useEffect } from "react";
+import { crearProducto, type ProductoCreate, listarProductos, type Producto } from "../services/products";
 import "./Dashboard.css";
 
 interface VendedorDashboardProps {
-  user: { nombre: string; rol_id: number };
+  user: { 
+    id: number;           // 👈 Asegúrate de que el user tiene id
+    nombre: string; 
+    rol_id: number;
+  };
 }
 
 const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
@@ -11,13 +15,31 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [misProductos, setMisProductos] = useState<Producto[]>([]);
   
-  // Estado para el formulario de nuevo producto
+  // Estado para el formulario de nuevo producto (ACTUALIZADO)
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
     precio: "",
+    stock: "", // 👈 NUEVO campo
   });
+
+  // Cargar productos del vendedor al montar el componente
+  useEffect(() => {
+    cargarProductos();
+  }, []);
+
+  const cargarProductos = async () => {
+    try {
+      const productos = await listarProductos();
+      // Filtrar solo los productos del vendedor actual
+      const misProductos = productos.filter(p => p.vendedor_id === user.id);
+      setMisProductos(misProductos);
+    } catch (error) {
+      console.error("Error al cargar productos:", error);
+    }
+  };
 
   // Manejar cambios en el formulario
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -42,6 +64,12 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
       return;
     }
     
+    const stock = parseInt(formData.stock);
+    if (isNaN(stock) || stock < 0) {
+      setError("El stock debe ser un número válido mayor o igual a 0");
+      return;
+    }
+    
     if (!formData.descripcion.trim()) {
       setError("La descripción del producto es requerida");
       return;
@@ -51,10 +79,13 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     setError("");
     
     try {
+      // Crear el producto con TODOS los campos que requiere el backend
       const nuevoProducto: ProductoCreate = {
+        vendedor_id: user.id,              // 👈 ID del vendedor actual
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion.trim(),
         precio: precio,
+        stock: stock,                       // 👈 Stock del producto
       };
       
       console.log("Enviando producto:", nuevoProducto);
@@ -64,11 +95,16 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
       
       setSuccess(true);
       
+      // Limpiar formulario
       setFormData({
         nombre: "",
         descripcion: "",
         precio: "",
+        stock: "",
       });
+      
+      // Recargar lista de productos
+      await cargarProductos();
       
       setTimeout(() => {
         setShowNewProductForm(false);
@@ -101,20 +137,20 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         <div className="vendedor-stats">
           <div className="stat-card">
             <div className="stat-info">
-              <h3>0</h3>
-              <p>Ventas totales</p>
+              <h3>{misProductos.reduce((acc, p) => acc + p.stock, 0)}</h3>
+              <p>Stock total</p>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-info">
+              <h3>{misProductos.length}</h3>
+              <p>Productos publicados</p>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-info">
               <h3>0</h3>
-              <p>Productos vendidos</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-info">
-              <h3>0</h3>
-              <p>Stock</p>
+              <p>Ventas</p>
             </div>
           </div>
         </div>
@@ -136,7 +172,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         <button className="btn-ventas">Ver Ventas</button>
       </div>
 
-      {/* Formulario de nueva publicación */}
+      {/* Formulario de nueva publicación - ACTUALIZADO */}
       {showNewProductForm && (
         <div className="nuevo-producto-form">
           <h2>Crear nueva publicación</h2>
@@ -145,7 +181,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
           {success && <div className="success-message" style={{ marginBottom: '15px' }}>¡Producto creado exitosamente!</div>}
           
           <form onSubmit={handleSubmit}>
-            <div className="form-grid" style={{ gridTemplateColumns: "1fr" }}>
+            <div className="form-grid">
+              {/* Nombre */}
               <div className="form-group">
                 <label>Nombre del producto *</label>
                 <input
@@ -159,6 +196,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                 />
               </div>
               
+              {/* Precio */}
               <div className="form-group">
                 <label>Precio *</label>
                 <input
@@ -174,7 +212,24 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                 />
               </div>
               
+              {/* Stock - NUEVO */}
               <div className="form-group">
+                <label>Stock *</label>
+                <input
+                  type="number"
+                  name="stock"
+                  value={formData.stock}
+                  onChange={handleInputChange}
+                  placeholder="Cantidad disponible"
+                  min="0"
+                  step="1"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              
+              {/* Descripción */}
+              <div className="form-group full-width">
                 <label>Descripción *</label>
                 <textarea
                   name="descripcion"
@@ -209,15 +264,33 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </div>
       )}
 
-      {/* Contenido principal */}
+      {/* Lista de productos del vendedor */}
       <div className="vendedor-contenido" style={{ marginTop: '30px' }}>
         <div className="seccion-productos">
           <div className="seccion-header">
-            <h2>Mis productos</h2>
+            <h2>Mis productos ({misProductos.length})</h2>
           </div>
-          <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-            No hay productos publicados aún
-          </div>
+          
+          {misProductos.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+              No has publicado productos aún
+            </div>
+          ) : (
+            <div className="productos-grid">
+              {misProductos.map(producto => (
+                <div key={producto.id} className="producto-card">
+                  <div className="producto-info">
+                    <h3>{producto.nombre}</h3>
+                    <p className="producto-descripcion">{producto.descripcion}</p>
+                    <div className="producto-detalles">
+                      <span className="producto-precio">${producto.precio}</span>
+                      <span className="producto-stock">Stock: {producto.stock}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="seccion-ventas" style={{ marginTop: '20px' }}>
