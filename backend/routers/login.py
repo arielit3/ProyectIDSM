@@ -22,7 +22,7 @@ def login(#funcion login que usaremos
             detail="Usuario no encontrado"
         )
 
-    if not verify_password(form_data.password, user.password):
+    if not verify_password(form_data.password, user.relacion.password):
         raise HTTPException(
             status_code=401,
             detail="Contraseña incorrecta"
