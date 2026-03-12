@@ -19,6 +19,12 @@ class UsuarioCreate(BaseModel):
     password: str
     rol: str
 
+class ModificarNombre(BaseModel):
+    nombre: str
+
+class ModificarCorreo(BaseModel):
+    correo: str
+
 class ModificarApodo(BaseModel):
     apodo: str
 
@@ -145,3 +151,44 @@ def modificar_password(
     db.refresh(current_user)
 
     return {"mensaje": "Contrasena actualizada correctamente"}
+
+# -------- MODIFICAR NOMBRE --------
+@router.put("/modificar-nombre")
+def modificar_nombre(
+    datos: ModificarNombre,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+
+    current_user.nombre = datos.nombre
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"mensaje": "Nombre actualizado correctamente"}
+
+# -------- MODIFICAR CORREO --------
+@router.put("/modificar-correo")
+def modificar_correo(
+    datos: ModificarCorreo,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+
+    existente = db.query(models.Usuario).filter(
+        models.Usuario.correo == datos.correo
+    ).first()
+
+    if existente:
+        raise HTTPException(
+            status_code=400,
+            detail="El correo ya está en uso"
+        )
+
+    current_user.correo = datos.correo
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"mensaje": "Correo actualizado correctamente"}
+
