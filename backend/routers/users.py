@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Literal
 import models
 from deps import get_db, get_current_user
 from auth import hash_password
@@ -17,7 +18,7 @@ class UsuarioCreate(BaseModel):
     telefono: str
     matricula: int
     password: str
-    rol: str
+    rol: Literal["administrador", "vendedor", "cliente"]
 
 class ModificarNombre(BaseModel):
     nombre: str
@@ -47,7 +48,16 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
             detail="El correo ya esta registrado"
         )
 
-    # crear usuario_relacion
+    existente_matricula = db.query(models.UsuarioRelacion).filter(
+        models.UsuarioRelacion.matricula == usuario.matricula
+    ).first()
+
+    if existente_matricula:
+        raise HTTPException(
+            status_code=400,
+            detail="La matrícula ya está registrada"
+        )
+
     relacion = models.UsuarioRelacion(
         matricula=usuario.matricula,
         password=hash_password(usuario.password),
@@ -55,10 +65,8 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     )
 
     db.add(relacion)
-    db.commit()
-    db.refresh(relacion)
+    db.flush()  # obtiene el id sin hacer commit
 
-    # crear usuario
     nuevo_usuario = models.Usuario(
         apodo=usuario.apodo,
         nombre=usuario.nombre,
@@ -66,9 +74,12 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
         telefono=usuario.telefono,
         usuario_relacion_id=relacion.id
     )
+
     db.add(nuevo_usuario)
     db.commit()
+
     db.refresh(nuevo_usuario)
+
     return nuevo_usuario
 
 # -------- LISTAR USUARIOS --------
