@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import users, login  
+from routers import users, login, productos  
 
 app = FastAPI()
 
@@ -16,3 +16,4 @@ app.add_middleware(
 # Incluimos todos los endpoints a esta conexion
 app.include_router(users.router)
 app.include_router(login.router)
+app.include_router(productos.router)
