@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ReCAPTCHA from "react-google-recaptcha";
 import "./pages.css";
@@ -8,19 +8,21 @@ const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
+    apodo: "",
     nombre: "",
-    email: "",
+    correo: "", // Cambiado de 'email' a 'correo'
     telefono: "",
     matricula: "",
     password: "",
+    confirmPassword: "", // Nuevo campo para confirmar
     aceptarTerminos: false,
   });
 
-  const [mensaje, setMensaje] = React.useState("");
-  const [mensajeColor, setMensajeColor] = React.useState("red");
-  const [recaptchaToken, setRecaptchaToken] = React.useState<string | null>(null);
-  const [recaptchaError, setRecaptchaError] = React.useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [mensajeColor, setMensajeColor] = useState("red");
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -36,32 +38,67 @@ const RegisterPage: React.FC = () => {
     setRecaptchaError("");
   };
 
+  // Validar fortaleza de la contraseña
+  const validatePassword = (password: string): { valida: boolean; mensaje: string } => {
+    if (password.length < 8) {
+      return { valida: false, mensaje: "La contraseña debe tener al menos 8 caracteres" };
+    }
+    if (!/[A-Z]/.test(password)) {
+      return { valida: false, mensaje: "La contraseña debe tener al menos una mayúscula" };
+    }
+    if (!/[0-9]/.test(password)) {
+      return { valida: false, mensaje: "La contraseña debe tener al menos un número" };
+    }
+    return { valida: true, mensaje: "" };
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     // Validaciones del formulario
+    if (!formData.apodo.trim()) {
+      setMensaje("El apodo es obligatorio");
+      setMensajeColor("red");
+      return;
+    }
     if (!formData.nombre.trim()) {
       setMensaje("El nombre es obligatorio");
       setMensajeColor("red");
       return;
     }
-    if (!formData.email.includes("@")) {
-      setMensaje("Correo invalido");
+    if (!formData.correo.includes("@")) {
+      setMensaje("Correo inválido");
       setMensajeColor("red");
       return;
     }
     if (!formData.telefono.trim()) {
-      setMensaje("El telefono es obligatorio");
+      setMensaje("El teléfono es obligatorio");
       setMensajeColor("red");
       return;
     }
-    if (!formData.matricula.trim()) {
-      setMensaje("La matricula es obligatoria");
+    if (!formData.matricula.trim() || isNaN(parseInt(formData.matricula))) {
+      setMensaje("La matrícula es obligatoria y debe ser un número");
       setMensajeColor("red");
       return;
     }
+
+    // Validar contraseña
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.valida) {
+      setMensaje(passwordValidation.mensaje);
+      setMensajeColor("red");
+      return;
+    }
+
+    // Validar que las contraseñas coincidan
+    if (formData.password !== formData.confirmPassword) {
+      setMensaje("Las contraseñas no coinciden");
+      setMensajeColor("red");
+      return;
+    }
+
     if (!formData.aceptarTerminos) {
-      setMensaje("Debes aceptar los terminos");
+      setMensaje("Debes aceptar los términos y condiciones");
       setMensajeColor("red");
       return;
     }
@@ -74,13 +111,14 @@ const RegisterPage: React.FC = () => {
 
     try {
       const nuevo = await crearUsuario({
+        apodo: formData.apodo,
         nombre: formData.nombre,
-        correo: formData.email,
+        correo: formData.correo,
         telefono: formData.telefono,
         matricula: parseInt(formData.matricula),
         password: formData.password,
-        rol_id: 3,
-        recaptcha_token: recaptchaToken, //Aquí sale error porque aún no lo integro al back
+        rol: "cliente", // Por defecto, todos los registros son clientes
+        recaptcha_token: recaptchaToken,
       });
 
       setMensaje(`Usuario ${nuevo.nombre} creado correctamente`);
@@ -121,68 +159,108 @@ const RegisterPage: React.FC = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="registerForm">
-          {/* Todos tus campos existentes se mantienen igual */}
+          {/* Campo Apodo (nuevo) */}
           <div className="inputsRegister">
-            <label htmlFor="nombre">Nombre *</label>
+            <label htmlFor="apodo">Apodo *</label>
+            <input
+              type="text"
+              id="apodo"
+              name="apodo"
+              value={formData.apodo}
+              onChange={handleChange}
+              placeholder="Cómo quieres que te llamen"
+              required
+            />
+          </div>
+
+          {/* Campo Nombre */}
+          <div className="inputsRegister">
+            <label htmlFor="nombre">Nombre completo *</label>
             <input
               type="text"
               id="nombre"
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
+              placeholder="Tu nombre completo"
               required
             />
           </div>
 
+          {/* Campo Correo (cambiado de email) */}
           <div className="inputsRegister">
-            <label htmlFor="email">Email *</label>
+            <label htmlFor="correo">Correo electrónico *</label>
             <input
               type="email"
-              id="email"
-              name="email"
-              value={formData.email}
+              id="correo"
+              name="correo"
+              value={formData.correo}
               onChange={handleChange}
+              placeholder="ejemplo@correo.com"
               required
             />
           </div>
 
+          {/* Campo Teléfono */}
           <div className="inputsRegister">
-            <label htmlFor="telefono">Telefono *</label>
+            <label htmlFor="telefono">Teléfono *</label>
             <input
-              type="text"
+              type="tel"
               id="telefono"
               name="telefono"
               value={formData.telefono}
               onChange={handleChange}
+              placeholder="10 dígitos"
               required
             />
           </div>
 
+          {/* Campo Matrícula */}
           <div className="inputsRegister">
-            <label htmlFor="matricula">Matricula *</label>
+            <label htmlFor="matricula">Matrícula *</label>
             <input
               type="text"
               id="matricula"
               name="matricula"
               value={formData.matricula}
               onChange={handleChange}
+              placeholder="Número de matrícula"
               required
             />
           </div>
 
+          {/* Campo Contraseña */}
           <div className="inputsRegister">
-            <label htmlFor="password">Contrasena *</label>
+            <label htmlFor="password">Contraseña *</label>
             <input
               type="password"
               id="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
+              placeholder="Mínimo 8 caracteres, 1 mayúscula, 1 número"
+              required
+            />
+            <small style={{ color: '#666', fontSize: '12px' }}>
+              Mínimo 8 caracteres, 1 mayúscula, 1 número
+            </small>
+          </div>
+
+          {/* Campo Confirmar Contraseña (nuevo) */}
+          <div className="inputsRegister">
+            <label htmlFor="confirmPassword">Confirmar Contraseña *</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Repite tu contraseña"
               required
             />
           </div>
 
-          {/* Sección reCAPTCHA - NUEVO */}
+          {/* Sección reCAPTCHA */}
           <div className="recaptcha-section" style={{ margin: '20px 0' }}>
             <ReCAPTCHA
               ref={recaptchaRef}
@@ -197,6 +275,7 @@ const RegisterPage: React.FC = () => {
             )}
           </div>
 
+          {/* Términos y condiciones */}
           <div className="termsContainer">
             <label className="termsLabel">
               <input
@@ -205,20 +284,23 @@ const RegisterPage: React.FC = () => {
                 checked={formData.aceptarTerminos}
                 onChange={handleChange}
               />
-              <span>Acepto los terminos y condiciones *</span>
+              <span>Acepto los términos y condiciones *</span>
             </label>
           </div>
 
+          {/* Botón de registro */}
           <button type="submit" className="registerButton">
             Registrarse
           </button>
 
+          {/* Mensaje de estado */}
           {mensaje && (
             <div className="messageContainer" style={{ color: mensajeColor }}>
               {mensaje}
             </div>
           )}
 
+          {/* Link para ir al login */}
           <div className="loginSection">
             <p className="loginText">
               ¿Ya tienes cuenta?{" "}
@@ -227,7 +309,7 @@ const RegisterPage: React.FC = () => {
                 className="linkButton"
                 onClick={() => navigate("/login")}
               >
-                Inicia sesion
+                Inicia sesión
               </button>
             </p>
           </div>

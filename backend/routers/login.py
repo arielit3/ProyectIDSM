@@ -22,7 +22,7 @@ def login(#funcion login que usaremos
             detail="Usuario no encontrado"
         )
 
-    if not verify_password(form_data.password, user.password):
+    if not verify_password(form_data.password, user.relacion.password):
         raise HTTPException(
             status_code=401,
             detail="Contraseña incorrecta"
@@ -32,5 +32,11 @@ def login(#funcion login que usaremos
 
     return {
         "access_token": token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "user": { 
+            "id": user.id,
+            "nombre": user.nombre,
+            "correo": user.correo,
+            "rol": user.relacion.rol  
+        }
     }#si el usuario puede ingresar corrrectamente, crea un token que usamos para la authentication de el usuario

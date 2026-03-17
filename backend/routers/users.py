@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Literal
 import models
 from deps import get_db, get_current_user
 from auth import hash_password
-from recaptcha import verify_recaptcha  # Importamos la función de verificación de reCAPTCHA
 
 # Se define el router con prefijo /usuarios
 router = APIRouter(prefix="/usuarios", tags=["Users"])
@@ -12,71 +12,77 @@ router = APIRouter(prefix="/usuarios", tags=["Users"])
 # Modelo Pydantic para validar datos de entrada al crear usuario
 class UsuarioCreate(BaseModel):
     #creamos una clase que usaremos para guardar las propiedades de el nuevo usuario
+    apodo: str
     nombre: str
     correo: str
     telefono: str
     matricula: int
     password: str
-    rol_id: int
-    recaptcha_token: str  # Campo para el token de reCAPTCHA
+    rol: Literal["administrador", "vendedor", "cliente"]
 
-# Modelos para modificar datos del usuario (TODOS deben incluir recaptcha_token)
+class ModificarNombre(BaseModel):
+    nombre: str
+
+class ModificarCorreo(BaseModel):
+    correo: str
+
 class ModificarApodo(BaseModel):
     apodo: str
-    recaptcha_token: str 
 
-class ModificarMatricula(BaseModel):
-    matricula: int
-    recaptcha_token: str  
 class ModificarTelefono(BaseModel):
     telefono: str
-    recaptcha_token: str  
 
 class ModificarPassword(BaseModel):
-    password: str
-    recaptcha_token: str 
+    password: str  
 
-@router.post("/")  # damos referencia a el metodo post
-async def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
-    #creamos una funcion, entre parentesis establecemos los datos y su tipo
-    """Usuarios es igual a la clase, lo que ahce que usuario sea una instancia temporal que
-    debe recibir los valores que tiene, db nos sirve para las dependencias y asi conectar con la bd"""
-    
-    # VERIFICAR reCAPTCHA PRIMERO
-    await verify_recaptcha(usuario.recaptcha_token)
-    
-    # Verificar si ya existe un usuario con el mismo correo
-    existente = db.query(models.Usuario).filter(models.Usuario.correo == usuario.correo).first()
-    #existente realiza una busqueda, donde en la tabla de usuarios, filtramos a los usuarios por correo y buscamos
-    #si existe otro con el mismo
+@router.post("/")
+def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+
+    existente = db.query(models.Usuario).filter(
+        models.Usuario.correo == usuario.correo
+    ).first()
+
     if existente:
-        #si existente es true es pq si se encontro un usuario con el mismo correo que se quiere usar en el registro
         raise HTTPException(
             status_code=400,
             detail="El correo ya esta registrado"
         )
 
-    # creamos un nuevo usaurio
+    existente_matricula = db.query(models.UsuarioRelacion).filter(
+        models.UsuarioRelacion.matricula == usuario.matricula
+    ).first()
+
+    if existente_matricula:
+        raise HTTPException(
+            status_code=400,
+            detail="La matrícula ya está registrada"
+        )
+
+    relacion = models.UsuarioRelacion(
+        matricula=usuario.matricula,
+        password=hash_password(usuario.password),
+        rol=usuario.rol
+    )
+
+    db.add(relacion)
+    db.flush()  # obtiene el id sin hacer commit
+
     nuevo_usuario = models.Usuario(
+        apodo=usuario.apodo,
         nombre=usuario.nombre,
         correo=usuario.correo,
         telefono=usuario.telefono,
-        matricula=usuario.matricula,
-        password=hash_password(usuario.password),  # se cifra la contrasena
-        rol_id=usuario.rol_id
-    ) 
-    """Lo primero que hacemos es crear nuevo usaurio que es una instancia de la clase de usuario
-    esto para obtener sus propiedades, luego de esto, lo que hacemos es que a cada variable que tenemos le asignamos
-    el valor que tiene en la clase en su modelo (dicho de otra forma el objeto temporal que se crea)"""
-    
-    db.add(nuevo_usuario)
-    #agregamos a el nuevo usuario, para esto usamos la conexion con la bd y enviamos los datos que tenemos#
-    db.commit()
-    #confirmamos envio
-    db.refresh(nuevo_usuario)
-    #refrescamos a el objeto temporal para que se vacie
-    return nuevo_usuario  #regresamos a el nuevo usuario
+        usuario_relacion_id=relacion.id
+    )
 
+    db.add(nuevo_usuario)
+    db.commit()
+
+    db.refresh(nuevo_usuario)
+
+    return nuevo_usuario
+
+# -------- LISTAR USUARIOS --------
 @router.get("/")  # ruta protegida
 def listar_usuarios(
     db: Session = Depends(get_db),
@@ -84,6 +90,7 @@ def listar_usuarios(
 ):
     return db.query(models.Usuario).all()
 
+# -------- ELIMINAR USUARIO --------
 @router.delete("/{usuario_id}")  # eliminar por id, ruta protegida
 def eliminar_usuario(
     usuario_id: int,
@@ -100,22 +107,7 @@ def eliminar_usuario(
     db.commit()
     return {"mensaje": f"Usuario {usuario_id} eliminado correctamente"}
 
-@router.delete("/matricula/{matricula}")  # eliminar por matricula, ruta protegida
-def eliminar_usuario_por_matricula(
-    matricula: int,
-    db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(get_current_user)
-):
-    usuario = db.query(models.Usuario).filter(models.Usuario.matricula == matricula).first()
-    if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
-        )
-    db.delete(usuario)
-    db.commit()
-    return {"mensaje": f"Usuario con matricula {matricula} eliminado correctamente"}
-
+# -------- USUARIO ACTUAL --------
 @router.get("/me")
 def obtener_usuario_actual(
     current_user: models.Usuario = Depends(get_current_user)
@@ -125,16 +117,14 @@ def obtener_usuario_actual(
     #de esta forma mantenemos la seguridad de que el usuario y token esten unidos
     return current_user
 
-@router.put("/modificar-apodo")  # Ruta protegida
-async def modificar_apodo(  
+# -------- MODIFICAR APODO --------
+@router.put("/modificar-apodo")
+def modificar_apodo(
     datos: ModificarApodo,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    # 👇 VERIFICAR reCAPTCHA
-    await verify_recaptcha(datos.recaptcha_token)
-    
-    # actualizar el apodo del usuario autenticado
+
     current_user.apodo = datos.apodo
 
     db.commit()
@@ -142,42 +132,13 @@ async def modificar_apodo(
 
     return {"mensaje": "Apodo actualizado correctamente"}
 
-@router.put("/modificar-matricula")
-async def modificar_matricula(  
-    datos: ModificarMatricula,
-    db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(get_current_user)
-):
-    #VERIFICAR reCAPTCHA
-    await verify_recaptcha(datos.recaptcha_token)
-    
-    # verificar que la nueva matricula no exista
-    existente = db.query(models.Usuario).filter(
-        models.Usuario.matricula == datos.matricula
-    ).first()
-
-    if existente:
-        raise HTTPException(
-            status_code=400,
-            detail="La matricula ya esta registrada"
-        )
-
-    current_user.matricula = datos.matricula
-
-    db.commit()
-    db.refresh(current_user)
-
-    return {"mensaje": "Matricula actualizada correctamente"}
-
+# -------- MODIFICAR TELEFONO --------
 @router.put("/modificar-telefono")
-async def modificar_telefono(  #  HACER ASYNC
+def modificar_telefono(
     datos: ModificarTelefono,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    #  VERIFICAR reCAPTCHA
-    await verify_recaptcha(datos.recaptcha_token)
-    
     current_user.telefono = datos.telefono
 
     db.commit()
@@ -185,21 +146,60 @@ async def modificar_telefono(  #  HACER ASYNC
 
     return {"mensaje": "Telefono actualizado correctamente"}
 
+# -------- MODIFICAR PASSWORD --------
 @router.put("/modificar-password")
-async def modificar_password(  
+def modificar_password(
     datos: ModificarPassword,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    
-    await verify_recaptcha(datos.recaptcha_token)
-    
-    # cifrar nueva contraseña
+
     nueva_password = hash_password(datos.password)
 
-    current_user.password = nueva_password
+    current_user.relacion.password = nueva_password
 
     db.commit()
     db.refresh(current_user)
 
     return {"mensaje": "Contrasena actualizada correctamente"}
+
+# -------- MODIFICAR NOMBRE --------
+@router.put("/modificar-nombre")
+def modificar_nombre(
+    datos: ModificarNombre,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+
+    current_user.nombre = datos.nombre
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"mensaje": "Nombre actualizado correctamente"}
+
+# -------- MODIFICAR CORREO --------
+@router.put("/modificar-correo")
+def modificar_correo(
+    datos: ModificarCorreo,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+
+    existente = db.query(models.Usuario).filter(
+        models.Usuario.correo == datos.correo
+    ).first()
+
+    if existente:
+        raise HTTPException(
+            status_code=400,
+            detail="El correo ya está en uso"
+        )
+
+    current_user.correo = datos.correo
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"mensaje": "Correo actualizado correctamente"}
+

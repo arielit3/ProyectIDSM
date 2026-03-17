@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { listarUsuarios, obtenerUsuarioActual, actualizarUsuario } from "../services/users";
+import { listarUsuarios, obtenerUsuarioActual, actualizarUsuario, type Usuario } from "../services/users";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 
-// Se importan los dashboards por rol
+// Import dashboards
 import AdminDashboard from "./AdminDashboard";
 import CompradorDashboard from "./Comprador.Dashboard";
 import VendedorDashboard from "./VendedorDashboard";
@@ -11,16 +11,8 @@ import VendedorDashboard from "./VendedorDashboard";
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState<{ 
-    id?: number;
-    nombre: string; 
-    rol_id: number;
-    email?: string;
-    matricula?: string;
-    telefono?: string;
-    apodo?: string;
-  } | null>(null);
-  const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [user, setUser] = useState<Usuario | null>(null);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -38,12 +30,11 @@ const DashboardPage: React.FC = () => {
 
   const handleUpdateUser = async (updatedData: any) => {
     if (!user?.id) throw new Error("Usuario no identificado");
-    
     try {
-      const updatedUser = await actualizarUsuario(user.id, updatedData);
-      // Actualizar el estado local con los nuevos datos
+      const result = await actualizarUsuario(user.id, updatedData);
+      // Actualizar estado local
       setUser(prev => prev ? { ...prev, ...updatedData } : null);
-      return updatedUser;
+      return result;
     } catch (error) {
       console.error("Error al actualizar usuario", error);
       throw error;
@@ -63,11 +54,11 @@ const DashboardPage: React.FC = () => {
     fetchUser();
   }, [navigate]);
 
-  const getRoleBadge = (rol_id: number) => {
-    switch(rol_id) {
-      case 1: return <span className="role-badge admin">Administrador</span>;
-      case 2: return <span className="role-badge comprador">Comprador</span>;
-      case 3: return <span className="role-badge vendedor">Vendedor</span>;
+  const getRoleBadge = (rol?: string) => {
+    switch(rol) {
+      case "administrador": return <span className="role-badge admin">Administrador</span>;
+      case "cliente": return <span className="role-badge comprador">Comprador</span>;
+      case "vendedor": return <span className="role-badge vendedor">Vendedor</span>;
       default: return <span className="role-badge">Usuario</span>;
     }
   };
@@ -84,14 +75,13 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="dashboard-container">
-      {/* NAVBAR - ToroEats */}
       <nav className="navbar">
         <div className="nav-left">
           <span className="logo">ToroEats</span>
         </div>
 
-        {/* Solo mostrar búsqueda si es comprador */}
-        {user.rol_id === 2 && (
+        {/* Búsqueda solo para clientes */}
+        {user.relacion?.rol === "cliente" && (
           <div className="nav-search">
             <input 
               type="text" 
@@ -105,10 +95,9 @@ const DashboardPage: React.FC = () => {
         <div className="nav-right">
           <div className="user-info">
             <span className="user-name">{user.nombre}</span>
-            {getRoleBadge(user.rol_id)}
+            {getRoleBadge(user.relacion?.rol)}
           </div>
           
-          {/* Botón de perfil - Navega a la página de perfil */}
           <button 
             onClick={() => navigate("/perfil")} 
             className="profile-btn"
@@ -119,7 +108,6 @@ const DashboardPage: React.FC = () => {
             </div>
           </button>
           
-          {/* Botón de cerrar sesión como icono de puerta */}
           <button 
             onClick={handleLogout} 
             className="logout-icon-btn"
@@ -139,9 +127,8 @@ const DashboardPage: React.FC = () => {
         </div>
       </nav>
 
-      {/* CONTENIDO PRINCIPAL */}
       <div className="main-content">
-        {user.rol_id === 1 && (
+        {user.relacion?.rol === "administrador" && (
           <AdminDashboard 
             user={user} 
             usuarios={usuarios}
@@ -149,11 +136,11 @@ const DashboardPage: React.FC = () => {
           />
         )}
         
-        {user.rol_id === 2 && (
+        {user.relacion?.rol === "cliente" && (
           <CompradorDashboard user={user} />
         )}
         
-        {user.rol_id === 3 && (
+        {user.relacion?.rol === "vendedor" && (
           <VendedorDashboard user={user} />
         )}
       </div>
