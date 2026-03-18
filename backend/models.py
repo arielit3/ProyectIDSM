@@ -45,7 +45,6 @@ class Productos(Base):
     id = Column(Integer, primary_key=True, index=True)
     vendedor_id = Column(Integer, ForeignKey("usuarios.id"), index=True, nullable=False)
     vendedor = relationship("Usuario", back_populates="productos")
-
     nombre = Column(String, nullable=False)
     descripcion = Column(String, nullable=False)
     precio = Column(Float, nullable=False)
@@ -68,4 +67,4 @@ class Favorito(Base):
     producto_id = Column(Integer, ForeignKey("productos.id"), primary_key=True)
 
     usuario = relationship("Usuario", back_populates="favoritos")
-    producto = relationship("Productos", back_populates="favoritos")# update models
+    producto = relationship("Productos", back_populates="favoritos")
