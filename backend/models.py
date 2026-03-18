@@ -49,6 +49,8 @@ class Productos(Base):
     descripcion = Column(String, nullable=False)
     precio = Column(Float, nullable=False)
     stock = Column(Integer, nullable=False, default=0)
+    categoria = Column(String, nullable=False)
+    imagen_nombre = Column(String, nullable=True)
 
 
     favoritos = relationship(
