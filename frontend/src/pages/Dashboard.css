@@ -1440,6 +1440,239 @@
   letter-spacing: 1px;
 }
 
+/* ===== CATEGORÍAS ===== */
+.categorias-section {
+  margin-bottom: 40px;
+}
+
+.categorias-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.categoria-btn {
+  padding: 10px 24px;
+  background: white;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius-full);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.categoria-btn:hover {
+  border-color: var(--primary-green);
+  transform: translateY(-2px);
+}
+
+.categoria-btn.active {
+  background-color: var(--primary-green);
+  border-color: var(--primary-green);
+  color: white;
+}
+
+/* ===== SECCIÓN DE PRODUCTOS ===== */
+.productos-section {
+  margin-bottom: 60px;
+}
+
+.productos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.producto-card {
+  background: white;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  transition: var(--transition);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.producto-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+.producto-imagen {
+  height: 200px;
+  background-color: var(--bg-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.producto-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-image-icon {
+  font-size: 3rem;
+  color: var(--primary-green);
+}
+
+.favorito-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.favorito-btn:hover {
+  transform: scale(1.1);
+}
+
+.favorito-btn.active {
+  background-color: #ffebee;
+}
+
+.producto-categoria {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--bg-light);
+  border-radius: var(--border-radius-full);
+  font-size: 0.75rem;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+
+.producto-descripcion {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 10px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.producto-detalles {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.producto-precio {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--primary-green);
+}
+
+.producto-stock {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+.producto-detalle-linea {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.detalle-etiqueta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 70px;
+}
+
+.detalle-valor {
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.vendedor-nombre {
+  color: var(--primary-green);
+  font-weight: 600;
+}
+
+.producto-descripcion-container {
+  margin: 12px 0;
+}
+
+.producto-descripcion {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-dark);
+  margin: 8px 0 0 0;
+  padding-left: 8px;
+  border-left: 3px solid var(--primary-green);
+}
+
+.producto-detalles {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.producto-precio,
+.producto-stock {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.precio-valor {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--primary-green);
+}
+
+.stock-valor {
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+/* Ajuste para responsividad */
+@media (max-width: 768px) {
+  .producto-detalles {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .producto-detalle-linea {
+    flex-wrap: wrap;
+  }
+  
+  .detalle-etiqueta {
+    min-width: 60px;
+  }
+}
+
 /* ============================================================================
    RESPONSIVE DESIGN - MEDIA QUERIES GLOBALES
    ============================================================================ */
