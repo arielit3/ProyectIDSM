@@ -7,10 +7,12 @@ function getAuthHeader() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// Tipos para los roles
+// ────────────────────────────────────────────
+// Tipos
+// ────────────────────────────────────────────
+
 export type Rol = "administrador" | "vendedor" | "cliente";
 
-// Interfaz para crear usuario (registro)
 export interface UsuarioCreate {
   apodo: string;
   nombre: string;
@@ -22,7 +24,6 @@ export interface UsuarioCreate {
   recaptcha_token?: string;
 }
 
-// Interfaz para la respuesta del usuario (incluye relación)
 export interface Usuario {
   id: number;
   apodo: string;
@@ -35,21 +36,16 @@ export interface Usuario {
   };
 }
 
-// ============ ENDPOINTS PÚBLICOS ============
+// ────────────────────────────────────────────
+// Endpoints de usuarios
+// ────────────────────────────────────────────
 
-/**
- * Crea un nuevo usuario (registro público - NO requiere autenticación)
- */
+/** Registro público — sin header de autenticación */
 export async function crearUsuario(data: UsuarioCreate): Promise<Usuario> {
   const response = await axios.post(`${API_URL}/usuarios/`, data);
   return response.data;
 }
 
-// ============ ENDPOINTS PROTEGIDOS ============
-
-/**
- * Obtiene la lista de todos los usuarios (requiere autenticación)
- */
 export async function listarUsuarios(): Promise<Usuario[]> {
   const response = await axios.get(`${API_URL}/usuarios/`, {
     headers: getAuthHeader(),
@@ -57,9 +53,6 @@ export async function listarUsuarios(): Promise<Usuario[]> {
   return response.data;
 }
 
-/**
- * Elimina un usuario por su ID (requiere autenticación)
- */
 export async function eliminarUsuario(id: number): Promise<{ mensaje: string }> {
   const response = await axios.delete(`${API_URL}/usuarios/${id}`, {
     headers: getAuthHeader(),
@@ -67,28 +60,22 @@ export async function eliminarUsuario(id: number): Promise<{ mensaje: string }> 
   return response.data;
 }
 
-/**
- * Obtiene los datos del usuario actual (autenticado)
- */
 export async function obtenerUsuarioActual(): Promise<Usuario> {
-  try {
-    const response = await axios.get(`${API_URL}/usuarios/me`, {
-      headers: getAuthHeader(),
-    });
-    console.log("Usuario actual:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Error al obtener usuario actual:", error);
-    throw error;
-  }
+  const response = await axios.get(`${API_URL}/usuarios/me`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
 }
 
-// ============ MODIFICACIONES DE PERFIL ============
+// ────────────────────────────────────────────
+// Modificación de perfil
+// Todos envían { valor } — el backend usa CampoUpdate para todos
+// ────────────────────────────────────────────
 
 export async function modificarNombre(nombre: string): Promise<{ mensaje: string }> {
   const response = await axios.put(
     `${API_URL}/usuarios/modificar-nombre`,
-    { valor: nombre },  // Usa 'valor' porque el backend espera CampoUpdate
+    { valor: nombre },
     { headers: getAuthHeader() }
   );
   return response.data;
@@ -97,7 +84,7 @@ export async function modificarNombre(nombre: string): Promise<{ mensaje: string
 export async function modificarCorreo(correo: string): Promise<{ mensaje: string }> {
   const response = await axios.put(
     `${API_URL}/usuarios/modificar-correo`,
-    { valor: correo },  // Usa 'valor' porque el backend espera CampoUpdate
+    { valor: correo },
     { headers: getAuthHeader() }
   );
   return response.data;
@@ -106,7 +93,7 @@ export async function modificarCorreo(correo: string): Promise<{ mensaje: string
 export async function modificarApodo(apodo: string): Promise<{ mensaje: string }> {
   const response = await axios.put(
     `${API_URL}/usuarios/modificar-apodo`,
-    { valor: apodo },  // Usa 'valor' porque el backend espera CampoUpdate
+    { valor: apodo },
     { headers: getAuthHeader() }
   );
   return response.data;
@@ -115,22 +102,28 @@ export async function modificarApodo(apodo: string): Promise<{ mensaje: string }
 export async function modificarTelefono(telefono: string): Promise<{ mensaje: string }> {
   const response = await axios.put(
     `${API_URL}/usuarios/modificar-telefono`,
-    { valor: telefono },  // Usa 'valor' porque el backend espera CampoUpdate
+    { valor: telefono },
     { headers: getAuthHeader() }
   );
   return response.data;
 }
 
+/**
+ * El backend usa CampoUpdate para todos los campos, incluyendo password.
+ * Se envía { valor } igual que los demás.
+ */
 export async function modificarPassword(password: string): Promise<{ mensaje: string }> {
   const response = await axios.put(
     `${API_URL}/usuarios/modificar-password`,
-    { password },  // CORREGIDO: Envía { password } directamente
+    { valor: password },
     { headers: getAuthHeader() }
   );
   return response.data;
 }
 
-// ============ FUNCIÓN UNIFICADA PARA ACTUALIZAR PERFIL ============
+// ────────────────────────────────────────────
+// Función unificada para actualizar perfil
+// ────────────────────────────────────────────
 
 interface UpdateUserData {
   nombre?: string;
@@ -138,86 +131,54 @@ interface UpdateUserData {
   apodo?: string;
   telefono?: string;
   password?: string;
-  recaptcha_token?: string;
 }
 
 interface ResultadoActualizacion {
   campo: string;
   exito: boolean;
   mensaje?: string;
-  error?: any;
+  error?: string;
 }
 
-/**
- * Actualiza múltiples campos del perfil del usuario
- * Usa Promise.allSettled para manejar éxitos y errores parciales
- */
-export const actualizarUsuario = async (userId: number, userData: UpdateUserData) => {
-  const promesas: Promise<any>[] = [];
-  const campos: string[] = [];
+export async function actualizarUsuario(
+  userData: UpdateUserData
+): Promise<{ mensaje: string; exitosos: ResultadoActualizacion[]; fallidos: ResultadoActualizacion[] }> {
+  const tareas: Array<{ campo: string; promesa: Promise<{ mensaje: string }> }> = [];
 
-  // Preparar todas las promesas
-  if (userData.nombre !== undefined) {
-    promesas.push(modificarNombre(userData.nombre));
-    campos.push("nombre");
+  if (userData.nombre   !== undefined) tareas.push({ campo: "nombre",   promesa: modificarNombre(userData.nombre) });
+  if (userData.correo   !== undefined) tareas.push({ campo: "correo",   promesa: modificarCorreo(userData.correo) });
+  if (userData.apodo    !== undefined) tareas.push({ campo: "apodo",    promesa: modificarApodo(userData.apodo) });
+  if (userData.telefono !== undefined) tareas.push({ campo: "telefono", promesa: modificarTelefono(userData.telefono) });
+  if (userData.password)               tareas.push({ campo: "password", promesa: modificarPassword(userData.password) });
+
+  if (tareas.length === 0) {
+    return { mensaje: "No hay cambios para guardar", exitosos: [], fallidos: [] };
   }
 
-  if (userData.correo !== undefined) {
-    promesas.push(modificarCorreo(userData.correo));
-    campos.push("correo");
-  }
+  const resultados = await Promise.allSettled(tareas.map((t) => t.promesa));
 
-  if (userData.apodo !== undefined) {
-    promesas.push(modificarApodo(userData.apodo));
-    campos.push("apodo");
-  }
-
-  if (userData.telefono !== undefined) {
-    promesas.push(modificarTelefono(userData.telefono));
-    campos.push("telefono");
-  }
-
-  if (userData.password) {
-    promesas.push(modificarPassword(userData.password));
-    campos.push("password");
-  }
-
-  if (promesas.length === 0) {
-    return {
-      mensaje: "No hay cambios para guardar",
-      exitosos: [],
-      fallidos: []
-    };
-  }
-
-  // Ejecutar todas las promesas en paralelo
-  const resultados = await Promise.allSettled(promesas);
-  
   const exitosos: ResultadoActualizacion[] = [];
   const fallidos: ResultadoActualizacion[] = [];
 
-  resultados.forEach((result, index) => {
-    const campo = campos[index];
-    if (result.status === "fulfilled") {
-      exitosos.push({
-        campo,
-        exito: true,
-        mensaje: result.value.mensaje
-      });
+  resultados.forEach((res, i) => {
+    const campo = tareas[i].campo;
+    if (res.status === "fulfilled") {
+      exitosos.push({ campo, exito: true, mensaje: res.value.mensaje });
     } else {
+      console.error(`Error al actualizar ${campo}:`, res.reason);
       fallidos.push({
         campo,
         exito: false,
-        error: result.reason?.response?.data?.detail || result.reason?.message || "Error desconocido"
+        error: res.reason?.response?.data?.detail ?? res.reason?.message ?? "Error desconocido",
       });
     }
   });
 
   return {
-    mensaje: fallidos.length === 0 
-      ? "Perfil actualizado correctamente" 
+    mensaje: fallidos.length === 0
+      ? "Perfil actualizado correctamente"
       : `Se actualizaron ${exitosos.length} campos, ${fallidos.length} fallaron`,
     exitosos,
-    fallidos
+    fallidos,
   };
-};
+}

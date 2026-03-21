@@ -7,18 +7,30 @@ interface CompradorDashboardProps {
 }
 
 const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user }) => {
+  // Mostrar apodo si existe, si no el nombre completo
+  const displayName = user.apodo;
+
   return (
     <div className="comprador-dashboard">
       <div className="hero-section">
         <div className="hero-content">
           <div className="hero-text">
-            <h1 className="hero-title">¡Bienvenido, {user.nombre}!</h1>
+            <h1 className="hero-title">¡Bienvenido, {displayName}!</h1>
             <p className="hero-description">
               Explora los mejores productos de ToroEats
             </p>
           </div>
           <div className="hero-image">
-            <span className="main-logo-image">🍽️</span>
+            {/* Imagen desde /public — accesible directamente por ruta absoluta en Vite */}
+            <img
+              src="/ToroEats-removebg-preview.png"
+              alt="ToroEats Logo"
+              className="main-logo-image"
+              onError={(e) => {
+                // Fallback a la otra imagen disponible en /public
+                e.currentTarget.src = "/ToroEats.jpeg";
+              }}
+            />
           </div>
         </div>
       </div>
