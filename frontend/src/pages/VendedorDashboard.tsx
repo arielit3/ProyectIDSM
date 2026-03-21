@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { crearProducto, listarProductosPorVendedor, type ProductoCreate, type Producto } from "../services/products";
+import { crearProductoConImagen, listarProductosPorVendedor, type Producto } from "../services/products";
 import { type Usuario } from "../services/users";
 import "./Dashboard.css";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface VendedorDashboardProps {
   user: Usuario;
@@ -14,20 +16,21 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   const [success, setSuccess] = useState(false);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargandoProductos, setCargandoProductos] = useState(true);
-
+  const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+  const [imagenFile, setImagenFile] = useState<File | null>(null);
+  
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
     precio: "",
     stock: "",
+    categoria: "", 
   });
 
-  // Función para cargar productos
   const cargarProductos = useCallback(async () => {
     try {
       setCargandoProductos(true);
       const data = await listarProductosPorVendedor(user.id);
-      console.log("Productos cargados:", data);
       setProductos(data);
     } catch (error) {
       console.error("Error al cargar productos:", error);
@@ -37,20 +40,37 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   }, [user.id]);
 
-  // Cargar productos al montar el componente
   useEffect(() => {
     cargarProductos();
   }, [cargarProductos]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError("");
   };
 
+  const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImagenFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagenPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const getImagenUrl = (imagenNombre: string | null): string | null => {
+    if (!imagenNombre) return null;
+    return `${API_URL}/uploads/productos/${imagenNombre}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validaciones
     if (!formData.nombre.trim()) {
       setError("El nombre del producto es requerido");
       return;
@@ -73,42 +93,42 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
       return;
     }
     
+    
+    if (!formData.categoria.trim()) {
+      setError("La categoría es requerida");
+      return;
+    }
+    
     setIsLoading(true);
     setError("");
     
     try {
-      const nuevoProducto: ProductoCreate = {
-        vendedor_id: user.id,
-        nombre: formData.nombre.trim(),
-        descripcion: formData.descripcion.trim(),
-        precio: precio,
-        stock: stock,
-      };
+      const formDataToSend = new FormData();
+      formDataToSend.append("nombre", formData.nombre.trim());
+      formDataToSend.append("descripcion", formData.descripcion.trim());
+      formDataToSend.append("precio", precio.toString());
+      formDataToSend.append("stock", stock.toString());
+      formDataToSend.append("categoria", formData.categoria.trim());
       
-      console.log("Enviando producto:", nuevoProducto);
+      if (imagenFile) {
+        formDataToSend.append("imagen", imagenFile);
+      }
       
-      const productoCreado = await crearProducto(nuevoProducto);
-      console.log("Producto creado:", productoCreado);
+      const productoCreado = await crearProductoConImagen(formDataToSend);
       
-      // ===== ACTUALIZACIÓN ÚNICA =====
-      // Crear un NUEVO array con todos los productos actualizados
-      const nuevosProductos = [...productos, productoCreado];
-      
-      // Actualizar el estado UNA SOLA VEZ
-      setProductos(nuevosProductos);
-      
-      // Mostrar éxito
+      setProductos(prev => [...prev, productoCreado]);
       setSuccess(true);
       
-      // Limpiar formulario
       setFormData({
         nombre: "",
         descripcion: "",
         precio: "",
         stock: "",
+        categoria: "",
       });
+      setImagenFile(null);
+      setImagenPreview(null);
       
-      // Cerrar formulario después de 2 segundos
       setTimeout(() => {
         setShowNewProductForm(false);
         setSuccess(false);
@@ -129,17 +149,14 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
-  // Calcular estadísticas (se recalcula en CADA render)
   const totalProductos = productos.length;
   const totalStock = productos.reduce((sum, p) => sum + p.stock, 0);
-
-  console.log("Render - totalProductos:", totalProductos, "productos:", productos);
 
   return (
     <div className="vendedor-dashboard">
       <div className="vendedor-header">
         <div className="vendedor-welcome">
-          <h1>¡Hola, {user.nombre}!</h1>
+          <h1>¡Hola, {user.apodo || user.nombre}!</h1>
           <p className="vendedor-subtitle">Panel de control de ventas y productos</p>
         </div>
         <div className="vendedor-stats">
@@ -171,6 +188,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
             setShowNewProductForm(!showNewProductForm);
             setError("");
             setSuccess(false);
+            setImagenPreview(null);
+            setImagenFile(null);
           }}
         >
           {showNewProductForm ? "Cancelar" : "Nueva Publicación"}
@@ -183,10 +202,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         <div className="nuevo-producto-form">
           <h2>Crear nueva publicación</h2>
           
-          {error && <div className="error-message" style={{ marginBottom: '15px' }}>{error}</div>}
-          {success && <div className="success-message" style={{ marginBottom: '15px' }}>¡Producto creado exitosamente!</div>}
+          {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">¡Producto creado exitosamente!</div>}
           
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} encType="multipart/form-data">
             <div className="form-grid">
               <div className="form-group">
                 <label>Nombre del producto *</label>
@@ -196,6 +215,19 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                   value={formData.nombre}
                   onChange={handleInputChange}
                   placeholder="Ej. Pastel de chocolate"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Categoría *</label>
+                <input
+                  type="text"
+                  name="categoria"
+                  value={formData.categoria}
+                  onChange={handleInputChange}
+                  placeholder="Ej. Pasteles, Galletas, Bebidas..."
                   required
                   disabled={isLoading}
                 />
@@ -241,7 +273,26 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                   rows={4}
                   required
                   disabled={isLoading}
-                ></textarea>
+                />
+              </div>
+              
+              <div className="form-group full-width">
+                <label>Imagen del producto</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImagenChange}
+                  disabled={isLoading}
+                />
+                {imagenPreview && (
+                  <div className="imagen-preview" style={{ marginTop: '10px' }}>
+                    <img 
+                      src={imagenPreview} 
+                      alt="Preview" 
+                      style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
             
@@ -266,26 +317,37 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </div>
       )}
 
-      <div className="vendedor-contenido" style={{ marginTop: '30px' }}>
+      <div className="vendedor-contenido">
         <div className="seccion-productos">
           <div className="seccion-header">
             <h2>Mis productos ({totalProductos})</h2>
           </div>
           
           {cargandoProductos ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-              Cargando productos...
-            </div>
+            <div className="empty-state">Cargando productos...</div>
           ) : productos.length === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-              No has publicado productos aún
-            </div> 
+            <div className="empty-state">No has publicado productos aún</div>
           ) : (
             <div className="productos-grid">
               {productos.map(producto => (
                 <div key={producto.id} className="producto-card">
+                  <div className="producto-imagen">
+                    {producto.imagen_nombre ? (
+                      <img 
+                        src={getImagenUrl(producto.imagen_nombre) || ''} 
+                        alt={producto.nombre}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: '3rem' }}>📷</span>
+                    )}
+                  </div>
                   <div className="producto-info">
                     <h3>{producto.nombre}</h3>
+                    <span className="producto-categoria">{producto.categoria}</span>
                     <p className="producto-descripcion">{producto.descripcion}</p>
                     <div className="producto-detalles">
                       <span className="producto-precio">${producto.precio}</span>
@@ -296,15 +358,6 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
               ))}
             </div>
           )}
-        </div>
-
-        <div className="seccion-ventas" style={{ marginTop: '20px' }}>
-          <div className="seccion-header">
-            <h2>Ventas recientes</h2>
-          </div>
-          <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-            No hay ventas recientes
-          </div>
         </div>
       </div>
     </div>

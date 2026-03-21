@@ -7,42 +7,59 @@ function getAuthHeader() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// Interfaz para crear un producto
-export interface ProductoCreate {
+export interface Producto {
+  id: number;
   vendedor_id: number;
   nombre: string;
   descripcion: string;
   precio: number;
   stock: number;
+  categoria: string;
+  imagen_nombre: string | null;
+  vendedor?: {
+    id: number;
+    nombre: string;
+    apodo: string;
+  };
 }
-
-// Interfaz para la respuesta del producto
-export interface Producto extends ProductoCreate {
-  id: number;
-}
-
-// Interfaz para favoritos
-export interface Favorito {
-  id: number;
-  usuario_id: number;
-  producto_id: number;
-}
-
-// ============ PRODUCTOS ============
 
 /**
- * Crea un nuevo producto
+ * Crea un nuevo producto con imagen
  */
-export async function crearProducto(producto: ProductoCreate): Promise<Producto> {
-  const response = await axios.post(`${API_URL}/productos/`, producto, {
+export async function crearProductoConImagen(
+  formData: FormData
+): Promise<Producto> {
+  const response = await axios.post(`${API_URL}/productos/`, formData, {
+    headers: {
+      ...getAuthHeader(),
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+}
+
+/**
+ * Obtiene todos los productos (para compradores)
+ */
+export async function listarTodosProductos(): Promise<Producto[]> {
+  const response = await axios.get(`${API_URL}/productos/`, {
     headers: getAuthHeader(),
   });
   return response.data;
 }
 
 /**
- * Obtiene todos los productos de un vendedor específico
- * @param vendedorId - ID del vendedor
+ * Obtiene productos por categoría
+ */
+export async function listarProductosPorCategoria(categoria: string): Promise<Producto[]> {
+  const response = await axios.get(`${API_URL}/productos/categoria/${categoria}`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+/**
+ * Obtiene productos de un vendedor específico
  */
 export async function listarProductosPorVendedor(vendedorId: number): Promise<Producto[]> {
   const response = await axios.get(`${API_URL}/productos/vendedor/${vendedorId}`, {
@@ -53,7 +70,6 @@ export async function listarProductosPorVendedor(vendedorId: number): Promise<Pr
 
 /**
  * Obtiene un producto por su ID
- * @param productoId - ID del producto
  */
 export async function obtenerProducto(productoId: number): Promise<Producto> {
   const response = await axios.get(`${API_URL}/productos/${productoId}`, {
@@ -62,22 +78,8 @@ export async function obtenerProducto(productoId: number): Promise<Producto> {
   return response.data;
 }
 
-/**
- * Obtiene todos los productos (solo para admin)
- */
-export async function listarTodosProductos(): Promise<Producto[]> {
-  const response = await axios.get(`${API_URL}/productos/todos`, {
-    headers: getAuthHeader(),
-  });
-  return response.data;
-}
+// ============ FUNCIONES DE FAVORITOS ============
 
-// ============ FAVORITOS ============
-
-/**
- * Agrega un producto a favoritos
- * @param productoId - ID del producto a agregar
- */
 export async function agregarFavorito(productoId: number): Promise<{ mensaje: string }> {
   const response = await axios.post(
     `${API_URL}/productos/${productoId}/favorito`,
@@ -87,20 +89,13 @@ export async function agregarFavorito(productoId: number): Promise<{ mensaje: st
   return response.data;
 }
 
-/**
- * Obtiene la lista de favoritos del usuario actual
- */
-export async function obtenerFavoritos(): Promise<Favorito[]> {
+export async function obtenerFavoritos(): Promise<any[]> {
   const response = await axios.get(`${API_URL}/productos/favoritos`, {
     headers: getAuthHeader(),
   });
   return response.data;
 }
 
-/**
- * Elimina un producto de favoritos
- * @param productoId - ID del producto a eliminar
- */
 export async function quitarFavorito(productoId: number): Promise<{ mensaje: string }> {
   const response = await axios.delete(
     `${API_URL}/productos/${productoId}/favorito`,
