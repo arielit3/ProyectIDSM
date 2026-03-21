@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel
 import os
 import shutil
@@ -40,12 +41,10 @@ async def crear_producto(
         
         # Guardar imagen si se proporcionó
         if imagen:
-            # Generar nombre único para la imagen
             extension = os.path.splitext(imagen.filename)[1]
             imagen_nombre = f"{uuid.uuid4().hex}{extension}"
             imagen_path = os.path.join(UPLOAD_DIR, imagen_nombre)
             
-            # Guardar imagen en disco
             with open(imagen_path, "wb") as buffer:
                 shutil.copyfileobj(imagen.file, buffer)
         
@@ -89,9 +88,32 @@ def listar_todos_productos(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Obtiene todos los productos disponibles"""
-    productos = db.query(models.Productos).all()
-    return productos
+    """Obtiene todos los productos disponibles con información del vendedor"""
+    productos = db.query(models.Productos).options(
+        selectinload(models.Productos.vendedor)
+    ).all()
+    
+    # Formatear respuesta para incluir datos del vendedor
+    resultado = []
+    for p in productos:
+        producto_dict = {
+            "id": p.id,
+            "vendedor_id": p.vendedor_id,
+            "nombre": p.nombre,
+            "descripcion": p.descripcion,
+            "precio": p.precio,
+            "stock": p.stock,
+            "categoria": p.categoria,
+            "imagen_nombre": p.imagen_nombre,
+            "vendedor": {
+                "id": p.vendedor.id,
+                "nombre": p.vendedor.nombre,
+                "apodo": p.vendedor.apodo
+            } if p.vendedor else None
+        }
+        resultado.append(producto_dict)
+    
+    return resultado
 
 
 @router.get("/categoria/{categoria}")
@@ -101,7 +123,9 @@ def listar_productos_por_categoria(
     current_user: models.Usuario = Depends(get_current_user)
 ):
     """Obtiene productos por categoría"""
-    productos = db.query(models.Productos).filter(
+    productos = db.query(models.Productos).options(
+        selectinload(models.Productos.vendedor)
+    ).filter(
         models.Productos.categoria == categoria
     ).all()
     return productos
@@ -113,7 +137,9 @@ def obtener_producto(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    producto = db.query(models.Productos).filter(
+    producto = db.query(models.Productos).options(
+        selectinload(models.Productos.vendedor)
+    ).filter(
         models.Productos.id == producto_id
     ).first()
     if not producto:
@@ -152,7 +178,9 @@ def ver_favoritos(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    favoritos = db.query(models.Favorito).filter(
+    favoritos = db.query(models.Favorito).options(
+        selectinload(models.Favorito.producto).selectinload(models.Productos.vendedor)
+    ).filter(
         models.Favorito.usuario_id == current_user.id
     ).all()
     return favoritos
