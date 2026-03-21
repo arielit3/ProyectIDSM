@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import users, login, productos  
+from routers import users, login, productos
+from fastapi.staticfiles import StaticFiles #Para las imagenes estaticas  
 
 app = FastAPI()
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Configuracion de permisos para permitir conexion de front a back
 app.add_middleware(
