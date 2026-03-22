@@ -46,22 +46,28 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user }) => {
   }, []);
 
   const handleFavorito = async (productoId: number) => {
-    try {
-      if (favoritos.has(productoId)) {
-        await quitarFavorito(productoId);
-        setFavoritos(prev => {
-          const nuevo = new Set(prev);
-          nuevo.delete(productoId);
-          return nuevo;
-        });
-      } else {
-        await agregarFavorito(productoId);
-        setFavoritos(prev => new Set(prev).add(productoId));
-      }
-    } catch (error) {
-      console.error("Error al gestionar favorito:", error);
+  try {
+    if (favoritos.has(productoId)) {
+      // Quitar de favoritos
+      const result = await quitarFavorito(productoId);
+      console.log(result.mensaje);
+      setFavoritos(prev => {
+        const nuevo = new Set(prev);
+        nuevo.delete(productoId);
+        return nuevo;
+      });
+    } else {
+      // Agregar a favoritos
+      const result = await agregarFavorito(productoId);
+      console.log(result.mensaje);
+      setFavoritos(prev => new Set(prev).add(productoId));
     }
-  };
+  } catch (error) {
+    console.error("Error al gestionar favorito:", error);
+    // Mostrar mensaje al usuario
+    alert("No se pudo actualizar favoritos. Intenta de nuevo.");
+  }
+};
 
   const getImagenUrl = (imagenNombre: string | null): string | null => {
     if (!imagenNombre) return null;
