@@ -1,5 +1,5 @@
 import React from "react";
-import  './HomeLayout.css';
+import './HomeLayout.css';
 import { useNavigate } from "react-router-dom";
 
 //Definición de las props (objetos) para la interfaz principal
@@ -24,44 +24,39 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ //Se extraen las props directam
         if (onGetStartedClick) {
             onGetStartedClick();
         } else {
-            console.log("Empezando..."); //Si no se pasa ninguna función, se muestra este mensaje 
+            navigate("/login");
         }
     };
+    
     return ( //Se retorna el JSX
-        //Clase principal del layout
         <div className="homeLayout"> 
+            {/* Contenido principal - Todo centrado verticalmente */}
+            <main className="homeMain">
+                {/* Título */}
+                <h1 className="title">{pageTitle}</h1>
+                
+                {/* Imagen */}
+                <div className="homeImageContainer">
+                    <img 
+                        src={imageSrc} 
+                        alt="ToroEats Logo" 
+                        className="logoImage"
+                        onError={(e) => {
+                            e.currentTarget.src = "/ToroEats.jpeg";
+                        }}
+                    />
+                </div>
 
-            {/* Encabezado */}
-    <header className="header">
-        <h1 className="title">{pageTitle}</h1> {/* Toma el valor de pageTitle */}  
-    </header>
-
-      {/* Contenido principal */}
-    <main className="homeMain">
-        {/* Imagen centrada */}
-        <div className="homeImageContainer">
-        <img 
-            src={imageSrc} 
-            alt="ToroEats Logo" 
-            onError={(e) => { {/* Manejo de error si la imagen no carga */}
-            e.currentTarget.src = "/ToroEats.jpeg";
-            }}
-        />
+                {/* Botón */}
+                <button 
+                    className="homeStartButton"
+                    onClick={handleGetStartedClick}
+                >
+                    {buttonText}
+                </button>
+            </main>
         </div>
-
-        {/* Botón */}
-        <div className="homeButtonContainer">
-        <button 
-            className="homeStartButton"
-            onClick={() => navigate("/login")}
-        >
-            {buttonText}
-        </button>
-        </div>
-    </main>
-    </div>
-);
+    );
 };
 
-export default HomeLayout; //Se exporta el componente HomeLayout
-    
+export default HomeLayout;

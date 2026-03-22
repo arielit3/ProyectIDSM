@@ -1,55 +1,101 @@
-/*Estilos para la página de inicio */
+/* Estilos para la página de inicio */
 .homeLayout {
     min-height: 100vh;
     display: flex;
-    flex-direction: column;
     background: #ABC270;
-    font-family: sans-serif; /*Luego elegimos la letra entre todos, mejor usar una API */
-
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
-.header {
-    padding: 2rem;
-    text-align: center;
-}
-
-/*Estilos para el título */
-.title {
-    font-size: 2.5rem;
-    color: #071E07;
-    margin: 0;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-
-.homeMain{
+/* Contenido principal - Centrado perfecto */
+.homeMain {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 1.5rem;
     padding: 2rem;
-    gap: 2rem;
 }
 
+/* Título */
+.title {
+    font-size: 2.2rem;
+    color: #071E07;
+    margin: 0;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: -0.3px;
+}
+
+/* Contenedor de imagen */
 .homeImageContainer {
-    max-width: 500px;
-    width: 100%;
     display: flex;
     justify-content: center;
+    align-items: center;
 }
 
-.homeMessage{
-    text-align: center;
+/* Imagen - Sin efectos, solo limpia */
+.logoImage {
+    width: 100%;
+    max-width: 380px;
+    height: auto;
+    display: block;
 }
 
-.homeStartButton{
-    color:#fff;
-    padding: 8px 22px;
-    border-radius: 6px;
+/* Botón */
+.homeStartButton {
+    color: #fff;
+    padding: 10px 28px;
+    border-radius: 8px;
     background: #FEC868;
-    transition: all 0.2 ease;
+    border: none;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    margin-top: 0.5rem;
 }
-.homeStartButton:active{
-    transform: scale(0.96);
+
+.homeStartButton:hover {
+    background: #ffd57e;
+    transform: translateY(-1px);
+}
+
+.homeStartButton:active {
+    transform: scale(0.98);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .title {
+        font-size: 1.8rem;
+    }
+    
+    .logoImage {
+        max-width: 280px;
+    }
+    
+    .homeMain {
+        gap: 1.2rem;
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 1.5rem;
+    }
+    
+    .logoImage {
+        max-width: 240px;
+    }
+    
+    .homeMain {
+        gap: 1rem;
+    }
+    
+    .homeStartButton {
+        padding: 8px 24px;
+    }
 }
