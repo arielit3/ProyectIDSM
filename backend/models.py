@@ -51,6 +51,7 @@ class Productos(Base):
     stock = Column(Integer, nullable=False, default=0)
     categoria = Column(String, nullable=False)
     imagen_nombre = Column(String, nullable=True)
+    activo = Column(Integer, nullable=False, default=1)  # 1 = visible, 0 = oculto
 
 
     favoritos = relationship(
