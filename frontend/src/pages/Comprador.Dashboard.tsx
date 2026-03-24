@@ -7,14 +7,21 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 interface CompradorDashboardProps {
   user: Usuario;
+  terminoBusqueda?: string; // Recibe el termino de busqueda desde el padre
 }
 
-const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user }) => {
+const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBusqueda = "" }) => {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [favoritos, setFavoritos] = useState<Set<number>>(new Set());
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("todos");
   const [categorias, setCategorias] = useState<string[]>(["todos"]);
+  const [busquedaLocal, setBusquedaLocal] = useState<string>(terminoBusqueda);
+
+  // Actualizar busqueda local cuando cambia la prop
+  useEffect(() => {
+    setBusquedaLocal(terminoBusqueda);
+  }, [terminoBusqueda]);
 
   const cargarProductos = async () => {
     try {
@@ -46,47 +53,57 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user }) => {
   }, []);
 
   const handleFavorito = async (productoId: number) => {
-  try {
-    if (favoritos.has(productoId)) {
-      // Quitar de favoritos
-      const result = await quitarFavorito(productoId);
-      console.log(result.mensaje);
-      setFavoritos(prev => {
-        const nuevo = new Set(prev);
-        nuevo.delete(productoId);
-        return nuevo;
-      });
-    } else {
-      // Agregar a favoritos
-      const result = await agregarFavorito(productoId);
-      console.log(result.mensaje);
-      setFavoritos(prev => new Set(prev).add(productoId));
+    try {
+      if (favoritos.has(productoId)) {
+        const result = await quitarFavorito(productoId);
+        console.log(result.mensaje);
+        setFavoritos(prev => {
+          const nuevo = new Set(prev);
+          nuevo.delete(productoId);
+          return nuevo;
+        });
+      } else {
+        const result = await agregarFavorito(productoId);
+        console.log(result.mensaje);
+        setFavoritos(prev => new Set(prev).add(productoId));
+      }
+    } catch (error) {
+      console.error("Error al gestionar favorito:", error);
+      alert("No se pudo actualizar favoritos. Intenta de nuevo.");
     }
-  } catch (error) {
-    console.error("Error al gestionar favorito:", error);
-    // Mostrar mensaje al usuario
-    alert("No se pudo actualizar favoritos. Intenta de nuevo.");
-  }
-};
+  };
 
   const getImagenUrl = (imagenNombre: string | null): string | null => {
     if (!imagenNombre) return null;
     return `${API_URL}/uploads/productos/${imagenNombre}`;
   };
 
-  const productosFiltrados = categoriaSeleccionada === "todos"
-    ? productos
-    : productos.filter(p => p.categoria === categoriaSeleccionada);
-
-  const displayName = user.apodo || user.nombre;
-
-  // Función para obtener el nombre del vendedor (prioridad: apodo > nombre)
   const getVendedorNombre = (producto: Producto): string => {
     if (producto.vendedor) {
       return producto.vendedor.apodo || producto.vendedor.nombre;
     }
     return "Vendedor";
   };
+
+  // Filtrar productos por categoria y por termino de busqueda
+  const productosFiltrados = productos.filter(producto => {
+    // Filtro por categoria
+    if (categoriaSeleccionada !== "todos" && producto.categoria !== categoriaSeleccionada) {
+      return false;
+    }
+    
+    // Filtro por termino de busqueda (nombre del producto o nombre del vendedor)
+    if (busquedaLocal.trim() !== "") {
+      const busqueda = busquedaLocal.toLowerCase().trim();
+      const coincideNombre = producto.nombre.toLowerCase().includes(busqueda);
+      const coincideVendedor = getVendedorNombre(producto).toLowerCase().includes(busqueda);
+      return coincideNombre || coincideVendedor;
+    }
+    
+    return true;
+  });
+
+  const displayName = user.apodo || user.nombre;
 
   return (
     <div className="comprador-dashboard">
@@ -111,9 +128,10 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user }) => {
         </div>
       </div>
 
+      {/* Categorias */}
       {productos.length > 0 && (
         <div className="categorias-section">
-          <h2 className="section-title">Categorías</h2>
+          <h2 className="section-title">Categorias</h2>
           <div className="categorias-grid">
             {categorias.map(cat => (
               <button
@@ -130,16 +148,20 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user }) => {
 
       <div className="productos-section">
         <h2 className="section-title">
-          {categoriaSeleccionada === "todos" ? "Productos Disponibles" : categoriaSeleccionada}
+          {busquedaLocal 
+            ? `Resultados para "${busquedaLocal}"` 
+            : (categoriaSeleccionada === "todos" ? "Productos Disponibles" : categoriaSeleccionada)}
         </h2>
         
         {cargando ? (
           <div className="empty-state">Cargando productos...</div>
         ) : productosFiltrados.length === 0 ? (
           <div className="empty-state">
-            {categoriaSeleccionada === "todos" 
-              ? "No hay productos disponibles aún" 
-              : `No hay productos en la categoría "${categoriaSeleccionada}"`}
+            {busquedaLocal 
+              ? `No se encontraron productos que coincidan con "${busquedaLocal}"` 
+              : (categoriaSeleccionada === "todos" 
+                ? "No hay productos disponibles aun" 
+                : `No hay productos en la categoria "${categoriaSeleccionada}"`)}
           </div>
         ) : (
           <div className="productos-grid">
@@ -166,7 +188,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user }) => {
                   <h3>{producto.nombre}</h3>
                   
                   <div className="producto-detalle-linea">
-                    <span className="detalle-etiqueta">Categoría:</span>
+                    <span className="detalle-etiqueta">Categoria:</span>
                     <span className="detalle-valor">{producto.categoria}</span>
                   </div>
                   
@@ -176,7 +198,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user }) => {
                   </div>
                   
                   <div className="producto-descripcion-container">
-                    <span className="detalle-etiqueta">Descripción:</span>
+                    <span className="detalle-etiqueta">Descripcion:</span>
                     <p className="producto-descripcion">{producto.descripcion}</p>
                   </div>
                   
@@ -197,12 +219,10 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user }) => {
         )}
       </div>
 
-      
-
       <div className="sellers-section">
         <h2 className="section-title">Vendedores Destacados</h2>
         <div className="empty-state">
-          <p>Luego se haceee</p>
+          <p>Proximamente</p>
         </div>
       </div>
     </div>

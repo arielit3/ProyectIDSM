@@ -12,6 +12,8 @@ import AdminDashboard from "./AdminDashboard";
 import CompradorDashboard from "./Comprador.Dashboard";
 import VendedorDashboard from "./VendedorDashboard";
 
+// Estado global para la busqueda (se puede manejar con Context API o props)
+// Por simplicidad, usaremos un estado en el componente padre y lo pasaremos como prop
 interface UpdateUserData {
   nombre?: string;
   correo?: string;
@@ -26,6 +28,7 @@ const DashboardPage: React.FC = () => {
   const [user, setUser] = useState<Usuario | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [terminoBusqueda, setTerminoBusqueda] = useState<string>(""); // Estado para busqueda
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -42,16 +45,10 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleUpdateUser = async (updatedData: UpdateUserData) => {
-    // Bug 1 corregido: actualizarUsuario ya NO recibe userId como primer argumento
     try {
       const result = await actualizarUsuario(updatedData);
-
-      // Bug 2 corregido: en lugar de actualizar el estado manualmente
-      // (que puede desincronizarse si algún campo falla en el backend),
-      // refrescamos el usuario directamente desde el servidor.
       const usuarioActualizado = await obtenerUsuarioActual();
       setUser(usuarioActualizado);
-
       return result;
     } catch (error) {
       console.error("Error al actualizar usuario", error);
@@ -95,6 +92,12 @@ const DashboardPage: React.FC = () => {
     return nameToUse ? nameToUse.charAt(0).toUpperCase() : "U";
   };
 
+  const handleBuscar = () => {
+    // Solo pasamos el termino de busqueda al componente hijo
+    // El termino ya esta en el estado, solo forzamos la actualizacion
+    setTerminoBusqueda(terminoBusqueda);
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -118,14 +121,20 @@ const DashboardPage: React.FC = () => {
           <span className="logo">ToroEats</span>
         </div>
 
+        {/* Barra de busqueda SOLO para compradores */}
         {user.relacion?.rol === "cliente" && (
           <div className="nav-search">
             <input
               type="text"
-              placeholder="Buscar productos, categorías..."
+              placeholder="Buscar productos o vendedores..."
               className="search-input"
+              value={terminoBusqueda}
+              onChange={(e) => setTerminoBusqueda(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleBuscar()}
             />
-            <button type="button" className="search-btn">Buscar</button>
+            <button type="button" className="search-btn" onClick={handleBuscar}>
+              Buscar
+            </button>
           </div>
         )}
 
@@ -146,7 +155,7 @@ const DashboardPage: React.FC = () => {
           <button
             onClick={handleLogout}
             className="logout-icon-btn"
-            title="Cerrar sesión"
+            title="Cerrar sesion"
           >
             <svg className="logout-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
               <path d="M16 13v-2H7V8l-5 4 5 4v-3h7z"/>
@@ -166,7 +175,10 @@ const DashboardPage: React.FC = () => {
         )}
 
         {user.relacion?.rol === "cliente" && (
-          <CompradorDashboard user={user} />
+          <CompradorDashboard 
+            user={user} 
+            terminoBusqueda={terminoBusqueda}  // Pasamos el termino de busqueda
+          />
         )}
 
         {user.relacion?.rol === "vendedor" && (

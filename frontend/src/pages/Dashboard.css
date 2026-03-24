@@ -2022,6 +2022,105 @@
   font-weight: 500;
 }
 
+/* ===== BARRA DE BUSQUEDA RESPONSIVA ===== */
+.busqueda-section {
+  margin-bottom: 30px;
+  padding: 0 20px;
+}
+
+.busqueda-container {
+  display: flex;
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.busqueda-input {
+  flex: 1;
+  padding: 14px 20px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius-full);
+  font-size: 1rem;
+  transition: var(--transition);
+  background: white;
+}
+
+.busqueda-input:focus {
+  outline: none;
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 3px rgba(171, 194, 112, 0.2);
+}
+
+.busqueda-btn {
+  padding: 12px 28px;
+  background: var(--primary-green);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-full);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.busqueda-btn:hover {
+  background: var(--primary-green-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.resultados-info {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  text-align: center;
+}
+
+.limpiar-busqueda {
+  background: none;
+  border: none;
+  color: var(--primary-green);
+  cursor: pointer;
+  margin-left: 12px;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
+.limpiar-busqueda:hover {
+  color: var(--primary-green-dark);
+}
+
+/* Responsive para la barra de busqueda */
+@media (max-width: 768px) {
+  .busqueda-section {
+    padding: 0 16px;
+  }
+  
+  .busqueda-container {
+    gap: 8px;
+  }
+  
+  .busqueda-input {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+  
+  .busqueda-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .busqueda-container {
+    flex-direction: column;
+  }
+  
+  .busqueda-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 /* Ajuste para responsividad */
 @media (max-width: 768px) {
   .producto-detalles {
