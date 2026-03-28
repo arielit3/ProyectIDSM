@@ -67,7 +67,7 @@ async def crear_producto(
             stock=stock,
             categoria=categoria,
             imagen_nombre=imagen_nombre,
-            activo=1  # Por defecto visible
+            activo=1
         )
         
         db.add(nuevo_producto)
@@ -81,7 +81,7 @@ async def crear_producto(
         raise HTTPException(status_code=500, detail=f"Error al crear producto: {str(e)}")
 
 
-# ============ OBTENER PRODUCTOS DEL VENDEDOR ACTUAL (incluye ocultos) ============
+# ============ OBTENER PRODUCTOS ============
 @router.get("/mis-productos")
 def listar_mis_productos(
     db: Session = Depends(get_db),
@@ -94,7 +94,6 @@ def listar_mis_productos(
     return productos
 
 
-# ============ OBTENER PRODUCTOS DE UN VENDEDOR (solo visibles para compradores) ============
 @router.get("/vendedor/{vendedor_id}")
 def listar_productos_vendedor(
     vendedor_id: int,
@@ -104,12 +103,11 @@ def listar_productos_vendedor(
     """Obtiene productos VISIBLES de un vendedor específico"""
     productos = db.query(models.Productos).filter(
         models.Productos.vendedor_id == vendedor_id,
-        models.Productos.activo == 1  # Solo visibles
+        models.Productos.activo == 1
     ).all()
     return productos
 
 
-# ============ OBTENER TODOS LOS PRODUCTOS VISIBLES ============
 @router.get("/")
 def listar_todos_productos(
     db: Session = Depends(get_db),
@@ -119,7 +117,7 @@ def listar_todos_productos(
     productos = db.query(models.Productos).options(
         selectinload(models.Productos.vendedor)
     ).filter(
-        models.Productos.activo == 1  # Solo visibles
+        models.Productos.activo == 1
     ).all()
     
     resultado = []
@@ -145,7 +143,7 @@ def listar_todos_productos(
     return resultado
 
 
-# ============ ACTUALIZAR PRODUCTO ============
+# ============ ACTUALIZAR Y ELIMINAR PRODUCTO ============
 @router.put("/{producto_id}")
 def actualizar_producto(
     producto_id: int,
@@ -164,7 +162,6 @@ def actualizar_producto(
     if producto.vendedor_id != current_user.id:
         raise HTTPException(status_code=403, detail="No tienes permiso para editar este producto")
     
-    # Actualizar solo los campos que vienen en la petición
     if producto_data.nombre is not None:
         producto.nombre = producto_data.nombre
     if producto_data.descripcion is not None:
@@ -184,7 +181,6 @@ def actualizar_producto(
     return producto
 
 
-# ============ ELIMINAR PRODUCTO (físicamente) ============
 @router.delete("/{producto_id}")
 def eliminar_producto(
     producto_id: int,
@@ -203,7 +199,6 @@ def eliminar_producto(
         raise HTTPException(status_code=403, detail="No tienes permiso para eliminar este producto")
     
     try:
-        # Eliminar imagen asociada si existe
         if producto.imagen_nombre:
             imagen_path = os.path.join(UPLOAD_DIR, producto.imagen_nombre)
             if os.path.exists(imagen_path):
@@ -218,7 +213,6 @@ def eliminar_producto(
         raise HTTPException(status_code=500, detail=f"Error al eliminar producto: {str(e)}")
 
 
-# ============ OCULTAR/PUBLICAR PRODUCTO ============
 @router.patch("/{producto_id}/toggle")
 def toggle_producto_visibilidad(
     producto_id: int,
@@ -241,3 +235,114 @@ def toggle_producto_visibilidad(
     
     estado = "visible" if producto.activo == 1 else "oculto"
     return {"mensaje": f"Producto ahora está {estado}", "activo": producto.activo}
+
+
+# ============ FAVORITOS ============
+
+@router.post("/{producto_id}/favorito")
+def agregar_favorito(
+    producto_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Agrega un producto a favoritos del usuario actual"""
+    try:
+        producto = db.query(models.Productos).filter(
+            models.Productos.id == producto_id
+        ).first()
+        
+        if not producto:
+            raise HTTPException(status_code=404, detail="Producto no encontrado")
+        
+        existente = db.query(models.Favorito).filter(
+            models.Favorito.usuario_id == current_user.id,
+            models.Favorito.producto_id == producto_id
+        ).first()
+        
+        if existente:
+            raise HTTPException(status_code=400, detail="Este producto ya está en tus favoritos")
+        
+        favorito = models.Favorito(
+            usuario_id=current_user.id,
+            producto_id=producto_id
+        )
+        
+        db.add(favorito)
+        db.commit()
+        
+        return {"mensaje": "Producto agregado a favoritos", "producto_id": producto_id}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error al agregar favorito: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al agregar favorito: {str(e)}")
+
+
+@router.get("/favoritos")
+def obtener_favoritos(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene todos los favoritos del usuario actual con detalles del producto"""
+    try:
+        favoritos = db.query(models.Favorito).options(
+            selectinload(models.Favorito.producto).selectinload(models.Productos.vendedor)
+        ).filter(
+            models.Favorito.usuario_id == current_user.id
+        ).all()
+        
+        resultado = []
+        for f in favoritos:
+            if f.producto:
+                resultado.append({
+                    "id": f.producto_id,
+                    "usuario_id": f.usuario_id,
+                    "producto_id": f.producto_id,
+                    "producto": {
+                        "id": f.producto.id,
+                        "nombre": f.producto.nombre,
+                        "descripcion": f.producto.descripcion,
+                        "precio": f.producto.precio,
+                        "stock": f.producto.stock,
+                        "categoria": f.producto.categoria,
+                        "imagen_nombre": f.producto.imagen_nombre,
+                        "vendedor": {
+                            "id": f.producto.vendedor.id,
+                            "nombre": f.producto.vendedor.nombre,
+                            "apodo": f.producto.vendedor.apodo
+                        } if f.producto.vendedor else None
+                    }
+                })
+        
+        return resultado
+        
+    except Exception as e:
+        print(f"Error al obtener favoritos: {e}")
+        return []
+
+
+@router.delete("/{producto_id}/favorito")
+def quitar_favorito(
+    producto_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Elimina un producto de favoritos del usuario actual"""
+    try:
+        favorito = db.query(models.Favorito).filter(
+            models.Favorito.usuario_id == current_user.id,
+            models.Favorito.producto_id == producto_id
+        ).first()
+        
+        if not favorito:
+            raise HTTPException(status_code=404, detail="Favorito no encontrado")
+        
+        db.delete(favorito)
+        db.commit()
+        
+        return {"mensaje": "Producto eliminado de favoritos", "producto_id": producto_id}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error al quitar favorito: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al quitar favorito: {str(e)}")
