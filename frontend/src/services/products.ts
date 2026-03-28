@@ -1,11 +1,8 @@
-import axios from "axios";
+import api from "./api";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-function getAuthHeader() {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+// ============================================================================
+// TIPOS
+// ============================================================================
 
 export interface Producto {
   id: number;
@@ -16,7 +13,7 @@ export interface Producto {
   stock: number;
   categoria: string;
   imagen_nombre: string | null;
-  activo: number;  // 1 = visible, 0 = oculto
+  activo: number; // 1 = visible, 0 = oculto
   vendedor?: {
     id: number;
     nombre: string;
@@ -33,82 +30,104 @@ export interface ProductoUpdate {
   activo?: number;
 }
 
-// ============ PRODUCTOS ============
+// ============================================================================
+// PRODUCTOS
+// ============================================================================
 
+/**
+ * Crea un nuevo producto con imagen opcional.
+ * Usa multipart/form-data — axios lo detecta automaticamente al recibir FormData,
+ * no es necesario especificar el Content-Type manualmente.
+ */
 export async function crearProductoConImagen(formData: FormData): Promise<Producto> {
-  const response = await axios.post(`${API_URL}/productos/`, formData, {
-    headers: {
-      ...getAuthHeader(),
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  const response = await api.post(`/productos/`, formData);
   return response.data;
 }
 
+/**
+ * Obtiene todos los productos del vendedor autenticado (incluye ocultos).
+ * El token se adjunta automaticamente via el interceptor de api.ts.
+ */
 export async function listarMisProductos(): Promise<Producto[]> {
-  const response = await axios.get(`${API_URL}/productos/mis-productos`, {
-    headers: getAuthHeader(),
-  });
+  const response = await api.get(`/productos/mis-productos`);
   return response.data;
 }
 
+/**
+ * Obtiene todos los productos visibles de todos los vendedores.
+ */
 export async function listarTodosProductos(): Promise<Producto[]> {
-  const response = await axios.get(`${API_URL}/productos/`, {
-    headers: getAuthHeader(),
-  });
+  const response = await api.get(`/productos/`);
   return response.data;
 }
 
+/**
+ * Obtiene los productos visibles de un vendedor especifico por su ID.
+ */
 export async function listarProductosPorVendedor(vendedorId: number): Promise<Producto[]> {
-  const response = await axios.get(`${API_URL}/productos/vendedor/${vendedorId}`, {
-    headers: getAuthHeader(),
-  });
+  const response = await api.get(`/productos/vendedor/${vendedorId}`);
   return response.data;
 }
 
-export async function actualizarProducto(productoId: number, data: ProductoUpdate): Promise<Producto> {
-  const response = await axios.put(`${API_URL}/productos/${productoId}`, data, {
-    headers: getAuthHeader(),
-  });
+/**
+ * Actualiza los campos de un producto existente (solo el dueno puede hacerlo).
+ */
+export async function actualizarProducto(
+  productoId: number,
+  data: ProductoUpdate
+): Promise<Producto> {
+  const response = await api.put(`/productos/${productoId}`, data);
   return response.data;
 }
 
-export async function eliminarProducto(productoId: number): Promise<{ mensaje: string }> {
-  const response = await axios.delete(`${API_URL}/productos/${productoId}`, {
-    headers: getAuthHeader(),
-  });
+/**
+ * Elimina un producto permanentemente (solo el dueno puede hacerlo).
+ */
+export async function eliminarProducto(
+  productoId: number
+): Promise<{ mensaje: string }> {
+  const response = await api.delete(`/productos/${productoId}`);
   return response.data;
 }
 
-export async function toggleProductoVisibilidad(productoId: number): Promise<{ mensaje: string; activo: number }> {
-  const response = await axios.patch(`${API_URL}/productos/${productoId}/toggle`, {}, {
-    headers: getAuthHeader(),
-  });
+/**
+ * Alterna la visibilidad de un producto entre visible (1) y oculto (0).
+ */
+export async function toggleProductoVisibilidad(
+  productoId: number
+): Promise<{ mensaje: string; activo: number }> {
+  const response = await api.patch(`/productos/${productoId}/toggle`, {});
   return response.data;
 }
 
-// ============ FAVORITOS ============
+// ============================================================================
+// FAVORITOS
+// ============================================================================
 
-export async function agregarFavorito(productoId: number): Promise<{ mensaje: string }> {
-  const response = await axios.post(
-    `${API_URL}/productos/${productoId}/favorito`,
-    {},
-    { headers: getAuthHeader() }
-  );
+/**
+ * Agrega un producto a los favoritos del usuario autenticado.
+ */
+export async function agregarFavorito(
+  productoId: number
+): Promise<{ mensaje: string }> {
+  const response = await api.post(`/productos/${productoId}/favorito`, {});
   return response.data;
 }
 
+/**
+ * Obtiene todos los favoritos del usuario autenticado con detalles del producto.
+ */
 export async function obtenerFavoritos(): Promise<any[]> {
-  const response = await axios.get(`${API_URL}/productos/favoritos`, {
-    headers: getAuthHeader(),
-  });
+  const response = await api.get(`/productos/favoritos`);
   return response.data;
 }
 
-export async function quitarFavorito(productoId: number): Promise<{ mensaje: string }> {
-  const response = await axios.delete(
-    `${API_URL}/productos/${productoId}/favorito`,
-    { headers: getAuthHeader() }
-  );
+/**
+ * Elimina un producto de los favoritos del usuario autenticado.
+ */
+export async function quitarFavorito(
+  productoId: number
+): Promise<{ mensaje: string }> {
+  const response = await api.delete(`/productos/${productoId}/favorito`);
   return response.data;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   crearProductoConImagen,
   listarMisProductos, 
@@ -49,10 +49,11 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
 
   // Estados de la interfaz
   const [showNewProductForm, setShowNewProductForm] = useState(false);     // Muestra u oculta formulario de nuevo producto
-  const [showGestionProductos, setShowGestionProductos] = useState(false); // Muestra uoculta panel de gestion
+  const [showGestionProductos, setShowGestionProductos] = useState(false); // Muestra u oculta panel de gestion
   const [isLoading, setIsLoading] = useState(false);                       // Indica si se esta procesando una peticion
   const [error, setError] = useState("");                                  // Mensaje de error
   const [success, setSuccess] = useState("");                              // Mensaje de exito
+  const [refrescando, setRefrescando] = useState(false);                   // Estado para el boton de refrescar
 
   // Estados de datos
   const [productos, setProductos] = useState<Producto[]>([]);              // Lista de productos del vendedor
@@ -75,26 +76,63 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   // ==========================================================================
 
   /**
-   * Carga todos los productos del vendedor actual desde el backend
-   * Esta funcion se ejecuta al montar el componente y despues de cada modificacion
+   * Carga todos los productos del vendedor actual desde el backend.
+   *
+   * IMPORTANTE — Por que es una funcion async simple y NO usa useCallback:
+   * Este componente solo se renderiza despues de que DashboardPage termina
+   * de obtener el usuario del backend (DashboardPage tiene su propio estado
+   * "loading" y solo muestra VendedorDashboard cuando loading=false y user!=null).
+   * Eso garantiza que cuando este componente se monta, el token en localStorage
+   * ya esta listo y user.id ya tiene valor — no hay race condition.
+   * useCallback con dependencias vacias [] causaba que en React Strict Mode
+   * el efecto se ejecutara dos veces y la segunda llamada fallara silenciosamente,
+   * haciendo que las estadisticas siempre mostraran 0 al primer login.
    */
-  const cargarProductos = useCallback(async () => {
+  const cargarProductos = async () => {
     try {
       setCargandoProductos(true);
       const data = await listarMisProductos();
       setProductos(data);
+      console.log("Productos cargados:", data.length);
     } catch (error) {
       console.error("Error al cargar productos:", error);
       setError("No se pudieron cargar los productos");
     } finally {
       setCargandoProductos(false);
     }
-  }, []);
+  };
 
-  // Efecto que carga los productos al iniciar el componente
+  /**
+   * Refresca manualmente los productos (con indicador visual).
+   * Util en movil donde no existe el boton de recargar pagina del navegador.
+   * Llama directamente a cargarProductos sin condiciones adicionales.
+   */
+  const handleRefrescar = async () => {
+    setRefrescando(true);
+    await cargarProductos();
+    setTimeout(() => {
+      setRefrescando(false);
+      setSuccess("Productos actualizados");
+      setTimeout(() => setSuccess(""), 2000);
+    }, 500);
+  };
+
+  /**
+   * Efecto que carga los productos al montar el componente.
+   *
+   * Por que [] (array vacio) es correcto aqui:
+   * VendedorDashboard solo aparece en el DOM cuando DashboardPage ya tiene
+   * al usuario completo (loading=false), por lo que al montarse el token
+   * y el user.id siempre estan disponibles. No necesitamos re-ejecutar
+   * este efecto en ningun otro momento: el componente se monta una vez,
+   * carga los productos una vez, y a partir de ahi cada accion (crear,
+   * editar, eliminar, toggle) llama a cargarProductos() directamente.
+   */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    console.log("VendedorDashboard montado — cargando productos para vendedor ID:", user.id);
     cargarProductos();
-  }, [cargarProductos]);
+  }, []);
 
   // ==========================================================================
   // FUNCIONES DE MANEJO DE FORMULARIOS
@@ -409,6 +447,20 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
           Gestionar Productos
         </button>
         <button className="btn-ventas">Ver Ventas</button>
+        
+        {/* ====================================================================
+             BOTON DE REFRESCAR
+             Permite recargar manualmente la lista de productos.
+             Util especialmente en movil donde no hay boton de recargar pagina.
+        ====================================================================== */}
+        <button 
+          className="btn-refrescar"
+          onClick={handleRefrescar}
+          disabled={refrescando}
+          title="Actualizar productos"
+        >
+          {refrescando ? "Actualizando..." : "⟳ Actualizar"}
+        </button>
       </div>
 
       {/* ======================================================================

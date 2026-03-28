@@ -42,7 +42,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ //Se extraen las props directam
                         alt="ToroEats Logo" 
                         className="logoImage"
                         onError={(e) => {
-                            e.currentTarget.src = "/ToroEats.jpeg";
+                            e.currentTarget.src = "/ToroEats-removebg-preview.png"; 
                         }}
                     />
                 </div>

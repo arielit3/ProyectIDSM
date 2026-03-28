@@ -12,8 +12,6 @@ import AdminDashboard from "./AdminDashboard";
 import CompradorDashboard from "./Comprador.Dashboard";
 import VendedorDashboard from "./VendedorDashboard";
 
-// Estado global para la busqueda (se puede manejar con Context API o props)
-// Por simplicidad, usaremos un estado en el componente padre y lo pasaremos como prop
 interface UpdateUserData {
   nombre?: string;
   correo?: string;
@@ -28,7 +26,7 @@ const DashboardPage: React.FC = () => {
   const [user, setUser] = useState<Usuario | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
-  const [terminoBusqueda, setTerminoBusqueda] = useState<string>(""); // Estado para busqueda
+  const [terminoBusqueda, setTerminoBusqueda] = useState<string>("");
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -92,12 +90,6 @@ const DashboardPage: React.FC = () => {
     return nameToUse ? nameToUse.charAt(0).toUpperCase() : "U";
   };
 
-  const handleBuscar = () => {
-    // Solo pasamos el termino de busqueda al componente hijo
-    // El termino ya esta en el estado, solo forzamos la actualizacion
-    setTerminoBusqueda(terminoBusqueda);
-  };
-
   if (loading) {
     return (
       <div className="loading-container">
@@ -121,7 +113,7 @@ const DashboardPage: React.FC = () => {
           <span className="logo">ToroEats</span>
         </div>
 
-        {/* Barra de busqueda SOLO para compradores */}
+        {/* Barra de busqueda solo para compradores */}
         {user.relacion?.rol === "cliente" && (
           <div className="nav-search">
             <input
@@ -130,11 +122,7 @@ const DashboardPage: React.FC = () => {
               className="search-input"
               value={terminoBusqueda}
               onChange={(e) => setTerminoBusqueda(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleBuscar()}
             />
-            <button type="button" className="search-btn" onClick={handleBuscar}>
-              Buscar
-            </button>
           </div>
         )}
 
@@ -177,7 +165,7 @@ const DashboardPage: React.FC = () => {
         {user.relacion?.rol === "cliente" && (
           <CompradorDashboard 
             user={user} 
-            terminoBusqueda={terminoBusqueda}  // Pasamos el termino de busqueda
+            terminoBusqueda={terminoBusqueda}
           />
         )}
 

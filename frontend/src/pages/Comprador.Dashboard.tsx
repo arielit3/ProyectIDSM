@@ -175,7 +175,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
-                    <span className="no-image-icon">📷</span>
+                    <span className="no-image-icon">a</span>
                   )}
                   <button
                     className={`favorito-btn ${favoritos.has(producto.id) ? "active" : ""}`}
