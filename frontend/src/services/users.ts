@@ -39,8 +39,17 @@ export interface Usuario {
  * registro publico no importa si hay token o no.
  */
 export async function crearUsuario(data: UsuarioCreate): Promise<Usuario> {
-  const response = await api.post(`/usuarios/`, data);
-  return response.data;
+  console.log("crearUsuario() llamada con datos:", data);
+  try {
+    console.log("Enviando POST a /usuarios/");
+    const response = await api.post(`/usuarios/`, data);
+    console.log("Respuesta recibida:", response);
+    console.log("Retornando datos:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error en crearUsuario():", error);
+    throw error;
+  }
 }
 
 /**

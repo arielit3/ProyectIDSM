@@ -308,7 +308,78 @@ input:focus::placeholder {
     color: transparent;
 }
 
-/**/
+/* AGREGADO: Estilos para el campo de correo autogenerado */
+/* Muestra visualmente como: al [MATRICULA] @utcj.edu.mx */
+.correoAutogenerado {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: white;
+    font-size: 16px;
+    transition: all 0.3s;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+/* Estilo para el prefijo "al" en el correo autogenerado - a la izquierda */
+.correoAutogenerado .prefijo {
+    color: #666;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 14px 0;
+}
+
+/* Estilo para el input de matricula dentro del correo - EDITABLE */
+/* Este input es donde el usuario ingresa su numero de matricula */
+.correoAutogenerado .inputMatriculaEnCorreo {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 14px 4px;
+    font-size: 16px;
+    outline: none;
+    color: #333;
+    font-weight: 500;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* Permitir que el input sea editable con estilos activos */
+.correoAutogenerado .inputMatriculaEnCorreo:focus {
+    outline: none;
+    background-color: rgba(102, 126, 234, 0.05);
+}
+
+/* Placeholder en el input de matricula dentro del correo */
+.correoAutogenerado .inputMatriculaEnCorreo::placeholder {
+    color: #999;
+    text-align: center;
+}
+
+/* Estilo para el sufijo "@utcj.edu.mx" en el correo autogenerado - a la derecha */
+.correoAutogenerado .sufijo {
+    color: #666;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 14px 0;
+}
+
+/* Agregar efecto hover al contenedor completo del correo */
+.correoAutogenerado:focus-within {
+    border-color: #667eea;
+    background-color: rgba(102, 126, 234, 0.02);
+}
+
+/* Texto informativo que muestra el correo completo generado */
+.correoCompleto {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #667eea;
+    font-style: italic;
+}
 
 
 

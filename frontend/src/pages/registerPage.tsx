@@ -11,11 +11,11 @@ const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({
     apodo: "",
     nombre: "",
-    correo: "", // Cambiado de 'email' a 'correo'
+    // CAMBIO: El correo ahora se genera automaticamente a partir de matricula, solo almacenamos matricula
     telefono: "",
     matricula: "",
     password: "",
-    confirmPassword: "", // Nuevo campo para confirmar
+    confirmPassword: "",
     aceptarTerminos: false,
   });
 
@@ -24,12 +24,36 @@ const RegisterPage: React.FC = () => {
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [recaptchaError, setRecaptchaError] = useState("");
 
+  // AGREGADO: Funcion que genera automaticamente el correo electronico a partir de la matricula
+  // Formato esperado: al[matricula]@utcj.edu.mx
+  // Ejemplo: si matricula es 24110456, correo sera al24110456@utcj.edu.mx
+  const generarCorreoAutomatico = (matricula: string): string => {
+    if (!matricula.trim()) {
+      return ""; // Si no hay matricula, retornamos string vacio
+    }
+    return `al${matricula}@utcj.edu.mx`;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    
+    // CAMBIO: Si el campo que se modifica es matricula, permitir solo numeros
+    if (name === "matricula") {
+      // Eliminamos cualquier caracter que no sea numero
+      const soloNumeros = value.replace(/[^0-9]/g, "");
+      setFormData((prev) => ({
+        ...prev,
+        [name]: soloNumeros,
+      }));
+    } else {
+      // Para otros campos mantenemos el comportamiento original
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    }
+    
+    // Limpiar mensaje de error cuando el usuario empieza a escribir
     if (mensaje) setMensaje("");
   };
 
@@ -54,66 +78,108 @@ const RegisterPage: React.FC = () => {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("Botón presionado - iniciando validaciones");
 
     // Validaciones del formulario
     if (!formData.apodo.trim()) {
       setMensaje("El apodo es obligatorio");
       setMensajeColor("red");
+      console.log("Error: apodo vacío");
       return;
     }
+    console.log("Validación apodo: OK");
+    
     if (!formData.nombre.trim()) {
       setMensaje("El nombre es obligatorio");
       setMensajeColor("red");
+      console.log("Error: nombre vacío");
       return;
     }
-    if (!formData.correo.includes("@")) {
-      setMensaje("Correo inválido");
+    console.log("Validación nombre: OK");
+    
+    // CAMBIO: Validar que la matricula tenga contenido (el correo se genera automáticamente)
+    if (!formData.matricula.trim()) {
+      setMensaje("La matrícula es obligatoria");
       setMensajeColor("red");
+      console.log("Error: matrícula vacía");
       return;
     }
+    console.log("Validación matrícula: OK");
+    
+    if (isNaN(parseInt(formData.matricula))) {
+      setMensaje("La matrícula debe ser un número");
+      setMensajeColor("red");
+      console.log("Error: matrícula no es número");
+      return;
+    }
+    console.log("Matrícula es numérica: OK");
+    
     if (!formData.telefono.trim()) {
       setMensaje("El teléfono es obligatorio");
       setMensajeColor("red");
+      console.log("Error: teléfono vacío");
       return;
     }
-    if (!formData.matricula.trim() || isNaN(parseInt(formData.matricula))) {
-      setMensaje("La matrícula es obligatoria y debe ser un número");
-      setMensajeColor("red");
-      return;
-    }
+    console.log("Validación teléfono: OK");
 
     // Validar contraseña
     const passwordValidation = validatePassword(formData.password);
     if (!passwordValidation.valida) {
       setMensaje(passwordValidation.mensaje);
       setMensajeColor("red");
+      console.log("Error: contraseña débil -", passwordValidation.mensaje);
       return;
     }
+    console.log("Validación contraseña: OK");
 
     // Validar que las contraseñas coincidan
     if (formData.password !== formData.confirmPassword) {
       setMensaje("Las contraseñas no coinciden");
       setMensajeColor("red");
+      console.log("Error: contraseñas no coinciden");
       return;
     }
+    console.log("Contraseñas coinciden: OK");
 
     if (!formData.aceptarTerminos) {
       setMensaje("Debes aceptar los términos y condiciones");
       setMensajeColor("red");
+      console.log("Error: términos no aceptados");
       return;
     }
+    console.log("Términos aceptados: OK");
 
     // Validar reCAPTCHA
     if (!recaptchaToken) {
       setRecaptchaError("Por favor, verifica que no eres un robot");
+      console.log("Error: reCAPTCHA no validado");
       return;
     }
+    console.log("reCAPTCHA validado: OK");
+    console.log("TODAS LAS VALIDACIONES PASARON - Procediendo a crear usuario");
 
     try {
+      console.log("Entrando al bloque try");
+      
+      // CAMBIO: Generar el correo electronico automaticamente a partir de la matricula
+      console.log("Antes de generar correo - matrícula:", formData.matricula);
+      const correoGenerado = generarCorreoAutomatico(formData.matricula);
+      console.log("Correo generado:", correoGenerado);
+      
+      // AGREGADO: Debuggeo - mostrar en consola qué se va a enviar
+      console.log("Datos a enviar - apodo:", formData.apodo);
+      console.log("Datos a enviar - nombre:", formData.nombre);
+      console.log("Datos a enviar - correo:", correoGenerado);
+      console.log("Datos a enviar - telefono:", formData.telefono);
+      console.log("Datos a enviar - matricula parseada:", parseInt(formData.matricula));
+      console.log("Datos a enviar - recaptcha:", recaptchaToken ? "presente" : "ausente");
+      console.log("Llamando a crearUsuario...");
+      
       const nuevo = await crearUsuario({
         apodo: formData.apodo,
         nombre: formData.nombre,
-        correo: formData.correo,
+        // CAMBIO: Usar el correo generado automaticamente
+        correo: correoGenerado,
         telefono: formData.telefono,
         matricula: parseInt(formData.matricula),
         password: formData.password,
@@ -121,6 +187,7 @@ const RegisterPage: React.FC = () => {
         recaptcha_token: recaptchaToken,
       });
 
+      console.log("Usuario creado exitosamente:", nuevo);
       setMensaje(`Usuario ${nuevo.nombre} creado correctamente`);
       setMensajeColor("green");
       
@@ -135,13 +202,24 @@ const RegisterPage: React.FC = () => {
       }, 1500);
       
     } catch (error: any) {
+      console.error("Error al crear usuario:", error);
+      console.error("Detalle del error:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        fullError: error,
+      });
+      
+      // CAMBIO: Mostrar el mensaje de error del backend si existe
       if (error.response?.status === 400) {
-        setMensaje(error.response.data.detail);
+        // El backend retorna un objeto con "detail" o directamente un string
+        const detalleError = error.response.data.detail || error.response.data;
+        console.log("Mensaje detallado del backend:", detalleError);
+        setMensaje(detalleError);
       } else {
         setMensaje("Error al crear usuario");
       }
       setMensajeColor("red");
-      console.error(error);
       
       // Resetear reCAPTCHA en caso de error
       if (recaptchaRef.current) {
@@ -159,7 +237,7 @@ const RegisterPage: React.FC = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="registerForm">
-          {/* Campo Apodo (nuevo) */}
+          {/* Campo Apodo */}
           <div className="inputsRegister">
             <label htmlFor="apodo">Apodo *</label>
             <input
@@ -187,18 +265,32 @@ const RegisterPage: React.FC = () => {
             />
           </div>
 
-          {/* Campo Correo (cambiado de email) */}
+          {/* CAMBIO: Campo de Correo donde el usuario ingresa SOLO la matrícula */}
+          {/* El usuario verá: al [INPUT_MATRICULA] @utcj.edu.mx */}
           <div className="inputsRegister">
-            <label htmlFor="correo">Correo electrónico *</label>
-            <input
-              type="email"
-              id="correo"
-              name="correo"
-              value={formData.correo}
-              onChange={handleChange}
-              placeholder="ejemplo@correo.com"
-              required
-            />
+            <label htmlFor="correoMatricula">Correo electrónico *</label>
+            {/* Contenedor visual para mostrar como se forma el correo automáticamente */}
+            <div className="correoAutogenerado">
+              <span className="prefijo">al</span>
+              {/* Input EDITABLE donde el usuario ingresa solo la matrícula */}
+              <input
+                type="text"
+                id="correoMatricula"
+                name="matricula"
+                value={formData.matricula}
+                onChange={handleChange}
+                className="inputMatriculaEnCorreo"
+                placeholder="matricula"
+                inputMode="numeric"
+              />
+              <span className="sufijo">@utcj.edu.mx</span>
+            </div>
+            {/* Mostrar el correo completo generado como informacion para el usuario */}
+            {formData.matricula && (
+              <p className="correoCompleto">
+                Tu correo será: {generarCorreoAutomatico(formData.matricula)}
+              </p>
+            )}
           </div>
 
           {/* Campo Teléfono */}
@@ -211,20 +303,6 @@ const RegisterPage: React.FC = () => {
               value={formData.telefono}
               onChange={handleChange}
               placeholder="10 dígitos"
-              required
-            />
-          </div>
-
-          {/* Campo Matrícula */}
-          <div className="inputsRegister">
-            <label htmlFor="matricula">Matrícula *</label>
-            <input
-              type="text"
-              id="matricula"
-              name="matricula"
-              value={formData.matricula}
-              onChange={handleChange}
-              placeholder="Número de matrícula"
               required
             />
           </div>
@@ -246,7 +324,7 @@ const RegisterPage: React.FC = () => {
             </small>
           </div>
 
-          {/* Campo Confirmar Contraseña (nuevo) */}
+          {/* Campo Confirmar Contraseña */}
           <div className="inputsRegister">
             <label htmlFor="confirmPassword">Confirmar Contraseña *</label>
             <input
