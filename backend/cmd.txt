@@ -15,6 +15,11 @@ pip install python-jose passlib[bcrypt] python-multipart
 pip install --upgrade bcrypt
 
 pip install bcrypt==3.2.2
+pip install python-dotenv aiosmtplib
+
+Para reafirmar su instalacion correctamente, simplemente utilicen el comando:
+pip install -r .\requirements.txt
+
 
 
 Para crear las tablas:

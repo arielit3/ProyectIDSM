@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Float, Integer, String, ForeignKey
+from sqlalchemy import Column, Float, Integer, String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
+from datetime import datetime
 
 
 class UsuarioRelacion(Base):
@@ -71,3 +72,34 @@ class Favorito(Base):
 
     usuario = relationship("Usuario", back_populates="favoritos")
     producto = relationship("Productos", back_populates="favoritos")
+
+
+# Tabla para almacenar codigos OTP temporales de verificacion de correo
+class VerificacionOTP(Base):
+    __tablename__ = "verificacion_otp"
+
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Email para el cual se genero el OTP
+    email = Column(String, index=True, nullable=False)
+    
+    # Codigo de 6 digitos
+    codigo = Column(String(6), nullable=False)
+    
+    # Fecha y hora en que se creo el OTP
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Fecha y hora en que expira el OTP (5 minutos despues de created_at)
+    expires_at = Column(DateTime, nullable=False)
+    
+    # Contador de intentos restantes antes de bloquear (inicial: 6)
+    # Cuando llega a 0, la cuenta se bloquea
+    # Con puntos crecientes: 1er fallo resta 1, 2do fallo resta 2, 3er fallo resta 3, etc.
+    intentos_restantes = Column(Integer, default=6, nullable=False)
+    
+    # Estado del OTP: 'vigente', 'usado', 'bloqueado', 'expirado'
+    # vigente: puede ser utilizado
+    # usado: ya fue verificado correctamente
+    # bloqueado: usuario excedio intentos fallidos
+    # expirado: paso el tiempo de validez
+    estado = Column(String, default='vigente', nullable=False)

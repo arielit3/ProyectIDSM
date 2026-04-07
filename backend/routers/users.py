@@ -64,22 +64,48 @@ def listar_usuarios(
 
 @router.post("/", status_code=201)
 def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+    """
+    Crea un nuevo usuario en la BD.
+    
+    Validaciones previas:
+    1. El email no debe estar ya registrado
+    2. La matricula no debe estar ya registrada
+    3. Debe existir un OTP verificado (estado='usado') para ese email
+    
+    Si el OTP es valido, se crea el usuario y se elimina el registro de OTP.
+    """
     # Las validaciones de negocio van FUERA del try/except de SQLAlchemy
-    # para que sus HTTPException 400 lleguen intactas al cliente.
+    # para que sus HTTPException lleguen intactas al cliente.
+    
+    # Validar que el email no este ya registrado
     existente = db.query(models.Usuario).filter(
         models.Usuario.correo == usuario.correo
     ).first()
     if existente:
-        raise HTTPException(status_code=400, detail="El correo ya está registrado")
+        raise HTTPException(status_code=400, detail="El correo ya esta registrado")
 
+    # Validar que la matricula no este ya registrada
     existente_matricula = db.query(models.UsuarioRelacion).filter(
         models.UsuarioRelacion.matricula == usuario.matricula
     ).first()
     if existente_matricula:
-        raise HTTPException(status_code=400, detail="La matrícula ya está registrada")
+        raise HTTPException(status_code=400, detail="La matricula ya esta registrada")
+    
+    # Validar que el OTP haya sido verificado para este email
+    otp_verificado = db.query(models.VerificacionOTP).filter(
+        models.VerificacionOTP.email == usuario.correo,
+        models.VerificacionOTP.estado == 'usado'
+    ).first()
+    
+    if not otp_verificado:
+        raise HTTPException(
+            status_code=400,
+            detail="Email no verificado. Debes ingresar el codigo OTP primero"
+        )
 
     # Solo los errores de BD van dentro del try/except
     try:
+        # Crear la relacion del usuario (credenciales)
         relacion = models.UsuarioRelacion(
             matricula=usuario.matricula,
             password=hash_password(usuario.password),
@@ -89,6 +115,7 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
         db.add(relacion)
         db.flush()
 
+        # Crear el usuario principal
         nuevo_usuario = models.Usuario(
             apodo=usuario.apodo,
             nombre=usuario.nombre,
@@ -98,7 +125,12 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
         )
         db.add(nuevo_usuario)
         db.commit()
+        
+        # Limpiar el OTP ya utilizado
+        db.delete(otp_verificado)
+        db.commit()
 
+        # Retornar el usuario creado con su informacion completa
         usuario_completo = db.query(models.Usuario).options(
             selectinload(models.Usuario.relacion)
         ).filter(models.Usuario.id == nuevo_usuario.id).first()
