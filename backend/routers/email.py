@@ -16,6 +16,9 @@ load_dotenv()
 
 router = APIRouter(tags=["email"])
 
+# Correo de soporte para desbloqueos y solicitudes de ayuda
+SOPORTE_EMAIL = "toritoseats@gmail.com"
+
 
 class EmailRequest(BaseModel):
     email: EmailStr
@@ -120,7 +123,7 @@ def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
         if otp_bloqueado:
             raise HTTPException(
                 status_code=403,
-                detail="Este email esta bloqueado. Contacta a soporte@toritoseats.com para desbloquear tu cuenta"
+                detail=f"Este email esta bloqueado. Contacta a {SOPORTE_EMAIL} para desbloquear tu cuenta"
             )
         
         # Buscar si existe un OTP vigente para este email y eliminarlo
@@ -146,7 +149,7 @@ def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
             codigo=codigo_otp,
             created_at=fecha_creacion,
             expires_at=fecha_expiracion,
-            intentos_restantes=6,
+            intentos_restantes=4,
             estado='vigente'
         )
         db.add(verificacion_otp)
@@ -240,7 +243,7 @@ def verificar_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
         if otp.estado == 'bloqueado':
             raise HTTPException(
                 status_code=403,
-                detail="Este email esta bloqueado por exceso de intentos. Contacta a soporte@toritoseats.com"
+                detail=f"Este email esta bloqueado por exceso de intentos. Contacta a {SOPORTE_EMAIL}"
             )
         
         # Verificar que el OTP no haya expirado
@@ -254,28 +257,24 @@ def verificar_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
         
         # Verificar que el codigo ingresado sea correcto
         if otp.codigo != request.codigo:
-            # Calcular puntos a restar (creciente: 1, 2, 3...)
-            intentos_fallidos = 6 - otp.intentos_restantes
-            puntos_a_restar = intentos_fallidos + 1
+            # Restar 1 intento por cada fallo
+            otp.intentos_restantes -= 1
             
-            # Restar puntos
-            otp.intentos_restantes -= puntos_a_restar
-            
-            # Validar si se debe bloquear
+            # Validar si se debe bloquear (cuando intentos_restantes llega a 0)
             if otp.intentos_restantes <= 0:
                 otp.estado = 'bloqueado'
                 otp.intentos_restantes = 0
                 db.commit()
                 raise HTTPException(
                     status_code=429,
-                    detail="Demasiados intentos fallidos. Tu cuenta ha sido bloqueada. Contacta a soporte@toritoseats.com para desbloquearla"
+                    detail=f"Demasiados intentos fallidos. Tu cuenta ha sido bloqueada. Contacta a {SOPORTE_EMAIL} para desbloquearla"
                 )
             
             # Retornar intentos restantes
             db.commit()
             raise HTTPException(
                 status_code=401,
-                detail=f"Codigo incorrecto. Te quedan {otp.intentos_restantes} puntos de intento"
+                detail=f"Codigo incorrecto. Te quedan {otp.intentos_restantes} intentos"
             )
         
         # Si el codigo es correcto, marcar como usado
