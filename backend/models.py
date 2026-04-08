@@ -24,7 +24,7 @@ class Usuario(Base):
     apodo = Column(String, nullable=True)
     nombre = Column(String, nullable=False)
     correo = Column(String, unique=True, index=True, nullable=False)
-    telefono = Column(String, unique=True)
+    telefono = Column(String, unique=False)
 
     
     usuario_relacion_id = Column(Integer, ForeignKey("usuario_relacion.id"), unique=True, nullable=False)

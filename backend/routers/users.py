@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from pydantic import BaseModel
 from typing import Literal
 import models
@@ -29,6 +29,32 @@ class CampoUpdate(BaseModel):
     valor: str  # usado en todos los PUT de perfil, incluyendo password
 
 
+# asiel: Modelo de respuesta para usuario después de crear o consultar
+class UsuarioResponse(BaseModel):
+    id: int
+    nombre: str
+    apodo: str | None
+    correo: str
+    telefono: str | None
+    rol_id: int = None  # Este será el ID del rol desde relacion
+    
+    class Config:
+        from_attributes = True
+
+
+# asiel: Modelo de respuesta que incluye relación anidada
+class UsuarioResponseWithRelacion(BaseModel):
+    id: int
+    nombre: str
+    apodo: str | None
+    correo: str
+    telefono: str | None
+    relacion: dict | None = None
+    
+    class Config:
+        from_attributes = True
+
+
 # ────────────────────────────────────────────
 # RUTAS ESTÁTICAS — van antes de /{param}
 # ────────────────────────────────────────────
@@ -38,12 +64,26 @@ def obtener_usuario_actual(
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """asiel: Retorna el usuario actual con su relación anidada"""
     usuario = db.query(models.Usuario).options(
         selectinload(models.Usuario.relacion)
     ).filter(models.Usuario.id == current_user.id).first()
+    
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    return usuario
+    
+    # asiel: Serializar como diccionario para evitar problemas de serializacion
+    return {
+        "id": usuario.id,
+        "nombre": usuario.nombre,
+        "correo": usuario.correo,
+        "apodo": usuario.apodo,
+        "telefono": usuario.telefono,
+        "relacion": {
+            "matricula": usuario.relacion.matricula,
+            "rol": usuario.relacion.rol
+        }
+    }
 
 
 @router.get("/")
@@ -51,11 +91,30 @@ def listar_usuarios(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    """asiel: Lista todos los usuarios (solo administradores)"""
     if current_user.relacion.rol != "administrador":
         raise HTTPException(status_code=403, detail="No tienes permiso para listar usuarios")
-    return db.query(models.Usuario).options(
+    
+    usuarios = db.query(models.Usuario).options(
         selectinload(models.Usuario.relacion)
     ).all()
+    
+    # asiel: Serializar cada usuario como diccionario
+    respuesta = []
+    for usuario in usuarios:
+        respuesta.append({
+            "id": usuario.id,
+            "nombre": usuario.nombre,
+            "correo": usuario.correo,
+            "apodo": usuario.apodo,
+            "telefono": usuario.telefono,
+            "relacion": {
+                "matricula": usuario.relacion.matricula,
+                "rol": usuario.relacion.rol
+            }
+        })
+    
+    return respuesta
 
 
 # ────────────────────────────────────────────
@@ -113,7 +172,8 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
             estado=1
         )
         db.add(relacion)
-        db.flush()
+        db.flush()  # Para obtener el ID de la relacion antes de crear el usuario
+        print(f"UsuarioRelacion creada con ID: {relacion.id}")
 
         # Crear el usuario principal
         nuevo_usuario = models.Usuario(
@@ -124,22 +184,38 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
             usuario_relacion_id=relacion.id
         )
         db.add(nuevo_usuario)
-        db.commit()
+        db.commit()  # Commit principal
+        print(f"Usuario creado con ID: {nuevo_usuario.id}")
         
-        # Limpiar el OTP ya utilizado
-        db.delete(otp_verificado)
-        db.commit()
+        # asiel: Limpiar el OTP ya utilizado después de crear al usuario
+        try:
+            db.delete(otp_verificado)
+            db.commit()
+            print(f"OTP eliminado para {usuario.correo}")
+        except Exception as e:
+            # Si falla el delete del OTP, no causa error en la creacion del usuario
+            print(f"Advertencia: No se pudo borrar OTP: {str(e)}")
+            db.rollback()
 
-        # Retornar el usuario creado con su informacion completa
-        usuario_completo = db.query(models.Usuario).options(
-            selectinload(models.Usuario.relacion)
-        ).filter(models.Usuario.id == nuevo_usuario.id).first()
+        # Retornar respuesta simple pero completa
+        return {
+            "id": nuevo_usuario.id,
+            "nombre": nuevo_usuario.nombre,
+            "correo": nuevo_usuario.correo,
+            "apodo": nuevo_usuario.apodo or "",
+            "telefono": nuevo_usuario.telefono or "",
+            "relacion": {
+                "matricula": relacion.matricula,
+                "rol": relacion.rol
+            }
+        }
 
-        return usuario_completo
-
-    except SQLAlchemyError as e:
+    except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error en BD: {str(e)}")
+        import traceback
+        print(f"Error al crear usuario: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error al crear usuario: {str(e)}")
 
 
 # ────────────────────────────────────────────

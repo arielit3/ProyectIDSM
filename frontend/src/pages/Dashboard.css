@@ -572,6 +572,12 @@
   color: var(--text-dark);
 }
 
+/* asiel: Estilo específico para celda de matrícula */
+.matricula-col {
+  color: var(--text-dark) !important;
+  font-weight: 500;
+}
+
 .users-table tr:hover,
 .quejas-table tr:hover {
   background: var(--bg-light);

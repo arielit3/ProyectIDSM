@@ -324,15 +324,21 @@ const RegisterPage: React.FC = () => {
       }, 2000);
       
     } catch (error: any) {
-      console.error("Error al verificar OTP:", error);
+      console.error("Error al verificar/crear usuario:", error);
       console.error("Detalle del error:", {
         status: error.response?.status,
         data: error.response?.data,
         message: error.message,
       });
       
-      // Manejar errores especificos del backend
-      if (error.response?.status === 401) {
+      // asiel: Manejar error 500 del endpoint de creación de usuario
+      if (error.response?.status === 500) {
+        const detalleError = error.response.data.detail || "Error interno del servidor";
+        console.log("Error 500 - Server Error:", detalleError);
+        setMensajeOTP("Error al crear tu cuenta: " + detalleError);
+      }
+      // Manejar errores especificos del OTP
+      else if (error.response?.status === 401) {
         // Codigo incorrecto
         const detalleError = error.response.data.detail || "Codigo incorrecto";
         console.log("Error 401 - Codigo incorrecto:", detalleError);
@@ -353,7 +359,7 @@ const RegisterPage: React.FC = () => {
         // No hay OTP para este email
         setMensajeOTP("No hay codigo OTP vigente, solicita uno nuevo");
       } else {
-        setMensajeOTP("Error al verificar el codigo, intenta de nuevo");
+        setMensajeOTP("Error al procesar tu solicitud, intenta de nuevo: " + (error.message || "Error desconocido"));
       }
     } finally {
       setCargandoOTP(false);
@@ -390,8 +396,12 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="containerRegister">
       <div className="registerBox">
+        {/* asiel: Logo de ToroEats con contenedor centrado */}
+        <div className="registerLogoContainer">
+          <img src="/ToroEatsLogo.png" alt="Toro Eats Logo" className="registerLogo" />
+        </div>
         <div className="registerHeader">
-          <h1>Registro</h1>
+          <h1>Crear Cuenta</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="registerForm">

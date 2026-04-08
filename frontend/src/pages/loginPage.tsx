@@ -33,6 +33,10 @@ const LoginPage: React.FC = () => {
   return (
     <div className="containerLogin">
       <div className="loginBox">
+        {/* asiel: Logo de ToroEats */}
+        <div className="logoContainer">
+          <img src="/ToroEatsLogo.png" alt="Toro Eats Logo" className="loginLogo" />
+        </div>
         <div className="loginHeader">
           <h1>Iniciar Sesión</h1>
         </div>
