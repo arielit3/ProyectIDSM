@@ -607,6 +607,14 @@ const RegisterPage: React.FC = () => {
                     className="inputCodigoOTP"
                   />
 
+                  {/**recaptcha */}
+                  <ReCAPTCHA
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY as string}
+                    onChange={handleRecaptchaChange}
+                    ref={recaptchaRef}
+                  />
+
+
                   {/* Botones de accion */}
                   <div className="botonesOTP">
                     <button
