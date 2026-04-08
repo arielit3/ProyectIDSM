@@ -121,7 +121,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
               alt="ToroEats Logo"
               className="main-logo-image"
               onError={(e) => {
-                e.currentTarget.src = "/ToroEats.jpeg";
+                e.currentTarget.src = "/ToroEats-removebg-preview.png"; 
               }}
             />
           </div>

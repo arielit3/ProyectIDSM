@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   crearProductoConImagen,
   listarMisProductos, 
@@ -77,37 +77,33 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
 
   /**
    * Carga todos los productos del vendedor actual desde el backend.
-   *
-   * IMPORTANTE — Por que es una funcion async simple y NO usa useCallback:
-   * Este componente solo se renderiza despues de que DashboardPage termina
-   * de obtener el usuario del backend (DashboardPage tiene su propio estado
-   * "loading" y solo muestra VendedorDashboard cuando loading=false y user!=null).
-   * Eso garantiza que cuando este componente se monta, el token en localStorage
-   * ya esta listo y user.id ya tiene valor — no hay race condition.
-   * useCallback con dependencias vacias [] causaba que en React Strict Mode
-   * el efecto se ejecutara dos veces y la segunda llamada fallara silenciosamente,
-   * haciendo que las estadisticas siempre mostraran 0 al primer login.
+   * Esta funcion NO tiene validacion interna. Se encarga SOLO de hacer la peticion
+   * y actualizar el estado. La validacion de user.id se hace en el useEffect.
    */
-  const cargarProductos = async () => {
+  const cargarProductos = useCallback(async () => {
     try {
       setCargandoProductos(true);
       const data = await listarMisProductos();
-      setProductos(data);
-      console.log("Productos cargados:", data.length);
+      // Asegurar que los datos son consistentes (todos los stocks como numeros)
+      const productosNormalizados = data.map(p => ({
+        ...p,
+        stock: typeof p.stock === 'string' ? parseInt(p.stock) : p.stock
+      }));
+      setProductos(productosNormalizados);
+      console.log("Productos cargados:", productosNormalizados.length);
     } catch (error) {
       console.error("Error al cargar productos:", error);
       setError("No se pudieron cargar los productos");
     } finally {
       setCargandoProductos(false);
     }
-  };
+  }, []);
 
   /**
    * Refresca manualmente los productos (con indicador visual).
    * Util en movil donde no existe el boton de recargar pagina del navegador.
-   * Llama directamente a cargarProductos sin condiciones adicionales.
    */
-  const handleRefrescar = async () => {
+  const handleRefrescar = useCallback(async () => {
     setRefrescando(true);
     await cargarProductos();
     setTimeout(() => {
@@ -115,24 +111,22 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
       setSuccess("Productos actualizados");
       setTimeout(() => setSuccess(""), 2000);
     }, 500);
-  };
+  }, [cargarProductos]);
 
   /**
-   * Efecto que carga los productos al montar el componente.
-   *
-   * Por que [] (array vacio) es correcto aqui:
-   * VendedorDashboard solo aparece en el DOM cuando DashboardPage ya tiene
-   * al usuario completo (loading=false), por lo que al montarse el token
-   * y el user.id siempre estan disponibles. No necesitamos re-ejecutar
-   * este efecto en ningun otro momento: el componente se monta una vez,
-   * carga los productos una vez, y a partir de ahi cada accion (crear,
-   * editar, eliminar, toggle) llama a cargarProductos() directamente.
+   * Efecto que carga los productos cuando el usuario esta disponible.
+   * 
+   * IMPORTANTE: Este efecto se ejecuta cuando el componente se monta Y cuando
+   * user.id cambia (de undefined a su valor real despues del login).
+   * La dependencia user?.id es crucial para que la carga ocurra exactamente
+   * cuando el usuario esta listo, resolviendo el problema de la primera carga.
    */
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    console.log("VendedorDashboard montado — cargando productos para vendedor ID:", user.id);
-    cargarProductos();
-  }, []);
+    if (user?.id) {
+      console.log("Cargando productos para vendedor ID:", user.id);
+      cargarProductos();
+    }
+  }, [user?.id, cargarProductos]);
 
   // ==========================================================================
   // FUNCIONES DE MANEJO DE FORMULARIOS
@@ -245,12 +239,13 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         formDataToSend.append("imagen", imagenFile);
       }
       
-      const productoCreado = await crearProductoConImagen(formDataToSend);
-      console.log("Producto creado:", productoCreado);
+      await crearProductoConImagen(formDataToSend);
       
       setSuccess("Producto creado exitosamente!");
       resetForm();
-      await cargarProductos(); // Recargar la lista para mostrar el nuevo producto
+      
+      // Recargar la lista completa desde el backend para asegurar consistencia
+      await cargarProductos();
       
       setTimeout(() => {
         setShowNewProductForm(false);
@@ -325,7 +320,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
       });
       
       setSuccess("Producto actualizado exitosamente!");
-      await cargarProductos(); // Recargar la lista con los cambios
+      
+      // Recargar la lista completa desde el backend para asegurar consistencia
+      await cargarProductos();
+      
       resetForm();
       setShowGestionProductos(false);
       
@@ -376,7 +374,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   // ==========================================================================
 
   const totalProductos = productos.length;                    // Total de productos del vendedor
-  const totalStock = productos.reduce((sum, p) => sum + p.stock, 0); // Suma total de existencias
+  const totalStock = productos.reduce((sum, p) => sum + (typeof p.stock === 'number' ? p.stock : 0), 0); // Suma total de existencias (convercion segura)
   const productosVisibles = productos.filter(p => p.activo === 1).length; // Productos visibles para compradores
 
   // ==========================================================================
