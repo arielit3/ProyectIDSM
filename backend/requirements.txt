@@ -5,3 +5,5 @@ sqlalchemy
 psycopg2
 python-jose
 python-multipart
+python-dotenv
+email-validator

@@ -15,6 +15,19 @@ const UserProfilePage: React.FC = () => {
   const recaptchaRef = useRef<ReCAPTCHA>(null); // Referencia para el componente reCAPTCHA
   
   /**
+    asiel: Función helper para convertir rol string a rol_id number
+    Mapea el rol devuelto por el backend (string) a un número de rol para compatibilidad con getRoleName
+   */
+  const getRolIdFromRol = (rol: string | undefined): number => {
+    switch(rol) {
+      case "administrador": return 1;
+      case "vendedor": return 3;
+      case "cliente": return 2;
+      default: return 2; // Default a cliente/comprador
+    }
+  };
+  
+  /**
     Estado del usuario - almacena los datos actuales del perfil
     Se obtienen del backend mediante obtenerUsuarioActual()
     
@@ -75,12 +88,21 @@ const UserProfilePage: React.FC = () => {
         const data = await obtenerUsuarioActual();
         console.log("Datos del usuario recibidos:", data);
         
-        setUser(data);
-        // Inicializar el formulario de edición con los datos actuales
+        // asiel: Extraer matricula de relacion.matricula y agregar al objeto user
+        // El backend devuelve la matricula y rol anidados en relacion, extraemos y asignamos al nivel superior
+        const userData = {
+          ...data,
+          matricula: data.relacion?.matricula || null,
+          // asiel: También extraemos rol y lo convertimos a rol_id para mantener compatibilidad con getRoleName
+          rol_id: getRolIdFromRol(data.relacion?.rol)
+        };
+        
+        setUser(userData);
+        // asiel: Inicializar el formulario de edición con los datos actuales, incluyendo matrícula de relacion
         setEditedUser({
           nombre: data.nombre || "",
           apodo: data.apodo || "",
-          matricula: data.matricula ? String(data.matricula) : "",
+          matricula: data.relacion?.matricula ? String(data.relacion.matricula) : "",
           telefono: data.telefono ? String(data.telefono) : "",
           correo: data.correo || "", 
           password: "",
@@ -135,6 +157,7 @@ const UserProfilePage: React.FC = () => {
   const handleCancelEdit = () => {
     setIsEditing(false);
     if (user) {
+      // asiel: Usar matricula extraída de relacion
       setEditedUser({
         nombre: user.nombre || "",
         apodo: user.apodo || "",
@@ -191,18 +214,11 @@ const UserProfilePage: React.FC = () => {
     }
 
     // Preparar datos para actualizar
-    const updateData: any = {};
+    const updateData: Record<string, string | number> = {};
     
-    // Solo se actualizan apodo, matrícula, teléfono y contraseña
+    // Solo se actualizan apodo, teléfono y contraseña (NO matrícula ni correo ni nombre)
     if (editedUser.apodo !== (user.apodo || "")) {
       updateData.apodo = editedUser.apodo || "";
-    }
-    
-    if (editedUser.matricula && editedUser.matricula !== String(user.matricula || "")) {
-      const matriculaNum = parseInt(editedUser.matricula);
-      if (!isNaN(matriculaNum)) {
-        updateData.matricula = matriculaNum;
-      }
     }
     
     if (editedUser.telefono && editedUser.telefono !== String(user.telefono || "")) {
@@ -218,14 +234,15 @@ const UserProfilePage: React.FC = () => {
       return;
     }
 
-    // Añadir el token de reCAPTCHA a los datos
-    updateData.recaptcha_token = recaptchaToken;
+    // asiel: Nota: No es necesario pasar reCAPTCHA porque estos endpoints están protegidos por JWT
+    // El usuario ya está autenticado, así que no necesita verificación adicional
 
     setIsLoading(true);
     setUpdateError("");
     
     try {
-      const result = await actualizarUsuario(user.id!, updateData);
+      // asiel: Llamar a actualizarUsuario sin user.id (la función usa el token JWT del header)
+      const result = await actualizarUsuario(updateData);
       
       console.log("Resultado de la actualización:", result);
       
@@ -235,13 +252,10 @@ const UserProfilePage: React.FC = () => {
         const updatedUser = { ...prev };
         
         if (updateData.apodo !== undefined) {
-          updatedUser.apodo = updateData.apodo;
-        }
-        if (updateData.matricula !== undefined) {
-          updatedUser.matricula = updateData.matricula;
+          updatedUser.apodo = updateData.apodo as string;
         }
         if (updateData.telefono !== undefined) {
-          updatedUser.telefono = updateData.telefono;
+          updatedUser.telefono = updateData.telefono as string;
         }
         
         return updatedUser;
@@ -260,11 +274,21 @@ const UserProfilePage: React.FC = () => {
         setUpdateSuccess(false);
       }, 2000);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error al actualizar:", error);
       
-      const errorMsg = error.response?.data?.detail || 
-                       error.message || 
+      // asiel: Type assertion para acceder a propiedades de error
+      const errorResponse = error as {
+        response?: {
+          data?: {
+            detail?: string;
+          };
+        };
+        message?: string;
+      };
+      
+      const errorMsg = errorResponse.response?.data?.detail || 
+                       errorResponse.message || 
                        "Error al actualizar los datos";
       setUpdateError(errorMsg);
       
@@ -440,13 +464,16 @@ const UserProfilePage: React.FC = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label>Matrícula:</label>
+                    {/* asiel: Matrícula es campo deshabilitado, no se puede modificar */}
                     <input
-                      type="text"
+                      type="number"
                       name="matricula"
                       value={editedUser.matricula}
                       onChange={handleInputChange}
                       placeholder="Tu matrícula"
+                      disabled
                     />
+                    <small style={{ color: '#666', fontSize: '12px' }}>La matrícula no se puede modificar</small>
                   </div>
 
                   <div className="form-group">

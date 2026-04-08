@@ -15,10 +15,15 @@ pip install python-jose passlib[bcrypt] python-multipart
 pip install --upgrade bcrypt
 
 pip install bcrypt==3.2.2
+pip install python-dotenv aiosmtplib
+
+Para reafirmar su instalacion correctamente, simplemente utilicen el comando:
+pip install -r .\requirements.txt
+
 
 
 Para crear las tablas:
-python init_db.py //antes de instalar debes tener la bd creada, el nombre de la bd es toroeats
+python init_db.py //antes de correr el programa debes tener la bd creada, el nombre de la bd es: toroeats
 
 Para correr fastapi (cuando ya estes en entorno virtual) ejecuta dentro de BACKEND:
 uvicorn main:app --reload
@@ -28,4 +33,4 @@ uvicorn main:app --reload
 
 o tambien a:
 localhost:8000/docs
-#
+

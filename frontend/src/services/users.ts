@@ -29,9 +29,92 @@ export interface Usuario {
   };
 }
 
+// Tipos para manejo de OTP (One Time Password)
+export interface RespuestaEnviarOTP {
+  status: string;
+}
+
+export interface RespuestaVerificarOTP {
+  status: string;
+}
+
 // ============================================================================
 // ENDPOINTS DE USUARIOS
 // ============================================================================
+
+// ............................................................................
+// FUNCIONES DE OTP (verificacion de correo)
+// ............................................................................
+
+/**
+ * Envia un codigo OTP al email especificado.
+ * Este endpoint genera un codigo de 6 digitos aleatorio y lo envia por correo.
+ * Si ya existe un OTP vigente para ese email, lo elimina y crea uno nuevo.
+ * 
+ * El codigo tiene validez de 5 minutos.
+ * 
+ * Parametros:
+ *   - email: el correo al cual se enviara el codigo
+ * 
+ * Retorna: objeto con status "sent" si todo funciono bien
+ * 
+ * Errores comunes:
+ *   - 400: email ya registrado en el sistema
+ *   - 403: email bloqueado por exceso de intentos fallidos
+ *   - 500: error en el servidor al enviar el correo
+ */
+export async function enviarOTP(email: string): Promise<RespuestaEnviarOTP> {
+  console.log("enviarOTP() llamada para email:", email);
+  try {
+    console.log("Enviando POST a /enviar-otp");
+    const response = await api.post(`/enviar-otp`, { email });
+    console.log("OTP enviado correctamente, respuesta:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error al enviar OTP:", error);
+    throw error;
+  }
+}
+
+/**
+ * Valida el codigo OTP ingresado por el usuario.
+ * Verifica que el codigo sea correcto y no haya expirado.
+ * 
+ * Sistema de intentos:
+ *   - El usuario tiene 4 intentos para ingresar el codigo correcto
+ *   - Cada intento fallido resta 1 intento
+ *   - Cuando llega a 0 intentos, la cuenta se bloquea
+ *   - Usuario bloqueado debe contactar a soporte para desbloqueo
+ * 
+ * Parametros:
+ *   - email: el correo para el cual se valida el codigo
+ *   - codigo: el codigo OTP de 6 digitos ingresado por el usuario
+ * 
+ * Retorna: objeto con status "verified" si el codigo es correcto
+ * 
+ * Errores comunes:
+ *   - 404: no hay OTP vigente para ese email
+ *   - 400: OTP expirado (paso > 5 minutos)
+ *   - 401: codigo incorrecto (retorna intentos restantes)
+ *   - 403: email bloqueado por exceso de intentos
+ *   - 429: demasiados intentos fallidos, cuenta bloqueada
+ */
+export async function verificarOTP(email: string, codigo: string): Promise<RespuestaVerificarOTP> {
+  console.log("verificarOTP() llamada para email:", email, "codigo:", codigo);
+  try {
+    console.log("Enviando POST a /verificar-otp");
+    const response = await api.post(`/verificar-otp`, { email, codigo });
+    console.log("OTP verificado correctamente, respuesta:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error al verificar OTP:", error);
+    throw error;
+  }
+}
+
+// ............................................................................
+// FUNCIONES DE USUARIOS
+// ............................................................................
 
 /**
  * Registro publico — no requiere token, se usa axios directo para este caso.
@@ -39,8 +122,17 @@ export interface Usuario {
  * registro publico no importa si hay token o no.
  */
 export async function crearUsuario(data: UsuarioCreate): Promise<Usuario> {
-  const response = await api.post(`/usuarios/`, data);
-  return response.data;
+  console.log("crearUsuario() llamada con datos:", data);
+  try {
+    console.log("Enviando POST a /usuarios/");
+    const response = await api.post(`/usuarios/`, data);
+    console.log("Respuesta recibida:", response);
+    console.log("Retornando datos:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error en crearUsuario():", error);
+    throw error;
+  }
 }
 
 /**
