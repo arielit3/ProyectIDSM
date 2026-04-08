@@ -23,7 +23,7 @@ pip install -r .\requirements.txt
 
 
 Para crear las tablas:
-python init_db.py //antes de instalar debes tener la bd creada, el nombre de la bd es toroeats
+python init_db.py //antes de correr el programa debes tener la bd creada, el nombre de la bd es: toroeats
 
 Para correr fastapi (cuando ya estes en entorno virtual) ejecuta dentro de BACKEND:
 uvicorn main:app --reload
@@ -33,4 +33,4 @@ uvicorn main:app --reload
 
 o tambien a:
 localhost:8000/docs
-#
+
