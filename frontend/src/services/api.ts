@@ -2,6 +2,8 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+console.log("API_URL configurada:", API_URL);
+
 /**
  * Instancia central de axios que usa toda la aplicacion.
  
@@ -13,6 +15,8 @@ const API_URL = import.meta.env.VITE_API_URL;
 const api = axios.create({
   baseURL: API_URL,
 });
+
+console.log("Axios baseURL configurada como:", API_URL);
 
 // Interceptor de peticiones: adjunta el token Bearer en cada request automaticamente
 api.interceptors.request.use((config) => {

@@ -70,7 +70,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, usuarios, onLista
                     <td>{u.apodo || "-"}</td>
                     <td>{u.correo}</td>
                     <td>{u.telefono || "-"}</td>
-                    <td>{u.relacion?.matricula}</td>
+                    {/* asiel: Añadir clase matricula-col para asegurar color correcto */}
+                    <td className="matricula-col">{u.relacion?.matricula}</td>
                     <td>
                       <span className={`role-badge ${u.relacion?.rol}`}>
                         {u.relacion?.rol}

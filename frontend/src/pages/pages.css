@@ -47,52 +47,66 @@ body {
 .loginBox {
     background: white;
     border-radius: 12px;
-    padding: 40px;
+    padding: 30px;
     width: 100%;
-    max-width: 420px;
+    max-width: 380px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* asiel: Estilos para el logo en login */
+.logoContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+.loginLogo {
+    max-width: 140px;
+    height: auto;
+    object-fit: contain;
 }
 
 .loginHeader {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 }
 
 .loginHeader h1 {
     color: #333;
-    font-size: 28px;
-    margin-bottom: 10px;
-    font-weight: 600;
+    font-size: 26px;
+    margin-bottom: 8px;
+    font-weight: 500;
 }
 
 .loginHeader p {
     color: #666;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .loginForm {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 18px;
 }
 
 .inputsLogin {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .inputsLogin label {
     color: #333;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
 }
 
 .inputsLogin input {
-    padding: 14px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 16px;
+    padding: 11px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
     transition: all 0.3s;
 }
 
@@ -102,27 +116,35 @@ body {
     background: #FEC868;
     color: white;
     border: none;
-    padding: 16px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: transform 0.3s, box-shadow 0.3s;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
+.loginButton:hover {
+    background: #FDB84C;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(254, 200, 104, 0.3);
+}
 
+.loginButton:active {
+    transform: translateY(0);
+}
 
 .registerSection {
     text-align: center;
-    margin-top: 20px;
-    padding-top: 20px;
+    margin-top: 16px;
+    padding-top: 16px;
     border-top: 1px solid #eee;
 }
 
 .registerText {
     color: #666;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 /* Registroo */
@@ -137,10 +159,24 @@ body {
 .registerBox {
     background: white;
     border-radius: 12px;
-    padding: 40px;
+    padding: 30px;
     width: 100%;
-    max-width: 450px;
+    max-width: 380px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* asiel: Estilos para el logo en register */
+.registerLogoContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+.registerLogo {
+    max-width: 140px;
+    height: auto;
+    object-fit: contain;
 }
 
 .backButton {
@@ -148,9 +184,9 @@ body {
     border: none;
     color: #FEC868;
     cursor: pointer;
-    font-size: 14px;
-    padding: 8px 0;
-    margin-bottom: 15px;
+    font-size: 13px;
+    padding: 6px 0;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -164,48 +200,46 @@ body {
 
 .registerHeader {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 }
 
 .registerHeader h1 {
     color: #333;
-    font-size: 28px;
+    font-size: 26px;
     margin-bottom: 8px;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .registerHeader p {
     color: #666;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .registerForm {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 16px;
 }
 
 .inputsRegister {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .inputsRegister label {
     color: #333;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
 }
 
 .inputsRegister input {
-    padding: 14px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 16px;
+    padding: 11px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
     transition: all 0.3s;
 }
-
-
 
 /* Términos y condiciones */
 .termsContainer {
@@ -247,28 +281,36 @@ body {
     background: #FEC868;
     color: white;
     border: none;
-    padding: 16px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: transform 0.3s, box-shadow 0.3s;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
+.registerButton:hover {
+    background: #FDB84C;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(254, 200, 104, 0.3);
+}
 
+.registerButton:active {
+    transform: translateY(0);
+}
 
 /* Sección de login en register */
 .loginSection {
     text-align: center;
-    margin-top: 20px;
-    padding-top: 20px;
+    margin-top: 16px;
+    padding-top: 16px;
     border-top: 1px solid #eee;
 }
 
 .loginText {
     color: #666;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 /* Para hacer la página responsiva */
@@ -308,8 +350,420 @@ input:focus::placeholder {
     color: transparent;
 }
 
-/**/
+/* AGREGADO: Estilos para el campo de correo autogenerado */
+/* Muestra visualmente como: al [MATRICULA] @utcj.edu.mx */
+.correoAutogenerado {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: white;
+    font-size: 16px;
+    transition: all 0.3s;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+/* Estilo para el prefijo "al" en el correo autogenerado - a la izquierda */
+.correoAutogenerado .prefijo {
+    color: #666;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 14px 0;
+}
+
+/* Estilo para el input de matricula dentro del correo - EDITABLE */
+/* Este input es donde el usuario ingresa su numero de matricula */
+.correoAutogenerado .inputMatriculaEnCorreo {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 14px 4px;
+    font-size: 16px;
+    outline: none;
+    color: #333;
+    font-weight: 500;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* Permitir que el input sea editable con estilos activos */
+.correoAutogenerado .inputMatriculaEnCorreo:focus {
+    outline: none;
+    background-color: rgba(102, 126, 234, 0.05);
+}
+
+/* Placeholder en el input de matricula dentro del correo */
+.correoAutogenerado .inputMatriculaEnCorreo::placeholder {
+    color: #999;
+    text-align: center;
+}
+
+/* Estilo para el sufijo "@utcj.edu.mx" en el correo autogenerado - a la derecha */
+.correoAutogenerado .sufijo {
+    color: #666;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 14px 0;
+}
+
+/* Agregar efecto hover al contenedor completo del correo */
+.correoAutogenerado:focus-within {
+    border-color: #667eea;
+    background-color: rgba(102, 126, 234, 0.02);
+}
+
+/* Texto informativo que muestra el correo completo generado */
+.correoCompleto {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #667eea;
+    font-style: italic;
+}
 
 
+/* ============================================================================ */
+/* ESTILOS DEL MODAL OTP - Verificacion de correo */
+/* ============================================================================ */
 
+/* Overlay del modal - fondo semi-transparente oscuro que cubre toda la pantalla */
+.modalOverlay {
+    /* Posicionar sobre todo */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    
+    /* Fondo oscuro semitransparente */
+    background-color: rgba(0, 0, 0, 0.5);
+    
+    /* Centrar contenido dentro */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Asegurarse que quede por encima de todo */
+    z-index: 1000;
+    
+    /* Padding para pantallas pequeñas */
+    padding: 20px;
+    
+    /* Animacion de entrada suave */
+    animation: fadeIn 0.3s ease-in;
+}
 
+/* Animacion que hace que el overlay aparezca suavemente */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Contenedor principal del modal */
+.modalOTP {
+    /* Tamaño y espaciado */
+    background: white;
+    border-radius: 12px;
+    padding: 30px 25px;
+    width: 100%;
+    max-width: 420px;
+    
+    /* Sombra para destacar del fondo */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    
+    /* Animacion de entrada con escala */
+    animation: scaleIn 0.3s ease-out;
+}
+
+/* Animacion que hace que el modal se agrande suavemente desde el centro */
+@keyframes scaleIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Header del modal con el titulo */
+.modalHeader {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.modalHeader h2 {
+    color: #333;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Contenido principal del modal */
+.modalContent {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Parrafo que dice "Se envio un codigo a" */
+.correoInfo {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+    text-align: center;
+}
+
+/* Email destino donde se envio el codigo */
+.correoDestino {
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    text-align: center;
+    word-break: break-all;
+}
+
+/* Contenedor para el timer de expiracion */
+.timerContainer {
+    background-color: #f5f5f5;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.timerLabel {
+    color: #666;
+    font-size: 12px;
+    margin: 0 0 5px 0;
+}
+
+/* Numero del timer - formato MM:SS */
+.timerValue {
+    color: #667eea;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    font-family: 'Courier New', monospace;
+}
+
+/* Contenedor para mostrar intentos restantes */
+.intentosContainer {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 12px 15px;
+    border-radius: 4px;
+}
+
+.intentosLabel {
+    color: #856404;
+    font-size: 14px;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Mensaje de error o informacion en el modal */
+.mensajeOTP {
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 14px;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Formulario dentro del modal para ingresar el codigo */
+.formOTP {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.formOTP label {
+    color: #333;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Input donde se ingresa el codigo OTP - 6 digitos */
+.inputCodigoOTP {
+    /* Tamaño y tipografia */
+    padding: 16px;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 8px;
+    
+    /* Borde y estilos */
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    
+    /* Family monospace para que se vea como codigo */
+    font-family: 'Courier New', monospace;
+    
+    /* Transiciones suaves */
+    transition: all 0.3s;
+}
+
+/* Cuando el input tiene foco */
+.inputCodigoOTP:focus {
+    outline: none;
+    border-color: #667eea;
+    background-color: rgba(102, 126, 234, 0.02);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Cuando el input esta deshabilitado */
+.inputCodigoOTP:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Placeholder del input del codigo */
+.inputCodigoOTP::placeholder {
+    color: #ddd;
+}
+
+/* Contenedor para los botones de accion */
+.botonesOTP {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Boton para verificar el codigo */
+.botonVerificar {
+    flex: 1;
+    padding: 14px;
+    background-color: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.botonVerificar:hover:not(:disabled) {
+    background-color: #5568d3;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    transform: translateY(-2px);
+}
+
+.botonVerificar:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Cuando el boton esta deshabilitado */
+.botonVerificar:disabled {
+    background-color: #ddd;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Boton para reenviar el codigo con cooldown */
+.botonReenviar {
+    flex: 1;
+    padding: 14px;
+    background-color: transparent;
+    color: #667eea;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.botonReenviar:hover:not(:disabled) {
+    background-color: rgba(102, 126, 234, 0.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    transform: translateY(-2px);
+}
+
+.botonReenviar:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Cuando el boton esta en cooldown (deshabilitado) */
+.botonReenviar:disabled {
+    color: #999;
+    border-color: #ddd;
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+/* Footer del modal */
+.modalFooter {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+/* Boton cancelar en el footer */
+.botonCancelar {
+    width: 100%;
+    padding: 12px;
+    background-color: transparent;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.botonCancelar:hover {
+    background-color: #f5f5f5;
+    border-color: #bbb;
+}
+
+/* Texto informativo en el footer del modal */
+.footerText {
+    color: #999;
+    font-size: 12px;
+    text-align: center;
+    margin: 0;
+    font-style: italic;
+}
+
+/* Responsive del modal para pantallas pequeñas */
+@media (max-width: 480px) {
+    .modalOTP {
+        padding: 25px 20px;
+        max-width: 90vw;
+    }
+
+    .modalHeader h2 {
+        font-size: 20px;
+    }
+
+    .inputCodigoOTP {
+        font-size: 20px;
+        letter-spacing: 6px;
+        padding: 14px;
+    }
+
+    .botonesOTP {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .botonVerificar,
+    .botonReenviar {
+        width: 100%;
+    }
+}
