@@ -231,3 +231,45 @@ export async function marcarTodasNotificacionesLeidas(): Promise<{ mensaje: stri
   );
   return response.data;
 }
+
+// ============================================================================
+// VENTAS
+// ============================================================================
+
+export interface Venta {
+  id: number;
+  solicitud_id: number;
+  cantidad: number;
+  precio_unitario: number;
+  total: number;
+  fecha_venta: string;
+  estado: string;
+  producto?: {
+    id: number;
+    nombre: string;
+  };
+  comprador?: {
+    id: number;
+    nombre: string;
+    apodo: string;
+  };
+  vendedor?: {
+    id: number;
+    nombre: string;
+    apodo: string;
+  };
+}
+
+export async function obtenerMisVentas(): Promise<Venta[]> {
+  const response = await axios.get(`${API_URL}/solicitudes/mis-ventas`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+export async function obtenerMisCompras(): Promise<Venta[]> {
+  const response = await axios.get(`${API_URL}/solicitudes/mis-compras`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}

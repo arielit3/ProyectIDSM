@@ -110,6 +110,34 @@ class SolicitudProducto(Base):
     producto = relationship("Productos", back_populates="solicitudes")
     comprador = relationship("Usuario", foreign_keys=[comprador_id], back_populates="solicitudes_enviadas")
     vendedor = relationship("Usuario", foreign_keys=[vendedor_id], back_populates="solicitudes_recibidas")
+    
+    # Relacion con Venta (uno a uno)
+    venta = relationship("Venta", back_populates="solicitud", uselist=False, cascade="all, delete-orphan")
+
+
+# ============================================================================
+# VENTAS
+# ============================================================================
+
+class Venta(Base):
+    __tablename__ = "ventas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    solicitud_id = Column(Integer, ForeignKey("solicitudes_producto.id"), unique=True, nullable=False)
+    comprador_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    vendedor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False)
+    cantidad = Column(Integer, nullable=False)
+    precio_unitario = Column(Float, nullable=False)
+    total = Column(Float, nullable=False)
+    fecha_venta = Column(DateTime, default=datetime.utcnow, nullable=False)
+    estado = Column(String, default="completada", nullable=False)
+    
+    # Relaciones
+    solicitud = relationship("SolicitudProducto", back_populates="venta")
+    comprador = relationship("Usuario", foreign_keys=[comprador_id])
+    vendedor = relationship("Usuario", foreign_keys=[vendedor_id])
+    producto = relationship("Productos")
 
 
 # ============================================================================
@@ -123,7 +151,7 @@ class Notificacion(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     titulo = Column(String, nullable=False)
     mensaje = Column(Text, nullable=False)
-    tipo = Column(String, nullable=False)  # favorito, solicitud, respuesta_aceptada, respuesta_rechazada, entrega_confirmada
+    tipo = Column(String, nullable=False)  # favorito, solicitud, respuesta_aceptada, respuesta_rechazada, entrega_confirmada, venta
     leida = Column(Boolean, default=False, nullable=False)
     data = Column(Text, nullable=True)
     fecha_creacion = Column(DateTime, default=datetime.utcnow, nullable=False)

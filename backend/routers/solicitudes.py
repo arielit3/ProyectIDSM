@@ -263,7 +263,7 @@ def marcar_como_entregado(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Comprador marca la solicitud como entregada"""
+    """Comprador marca la solicitud como entregada y se crea el registro de venta"""
     
     solicitud = db.query(models.SolicitudProducto).filter(
         models.SolicitudProducto.id == solicitud_id
@@ -278,25 +278,60 @@ def marcar_como_entregado(
     if solicitud.estado != "aceptado":
         raise HTTPException(status_code=400, detail="La solicitud debe estar aceptada para marcar como entregada")
     
+    # Obtener producto para calcular el total
+    producto = db.query(models.Productos).filter(
+        models.Productos.id == solicitud.producto_id
+    ).first()
+    
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # Calcular total
+    total = producto.precio * solicitud.cantidad
+    
+    # Crear registro de venta
+    venta = models.Venta(
+        solicitud_id=solicitud.id,
+        comprador_id=solicitud.comprador_id,
+        vendedor_id=solicitud.vendedor_id,
+        producto_id=solicitud.producto_id,
+        cantidad=solicitud.cantidad,
+        precio_unitario=producto.precio,
+        total=total
+    )
+    
+    db.add(venta)
+    
+    # Actualizar stock del producto
+    producto.stock -= solicitud.cantidad
+    
     solicitud.estado = "entregado"
     solicitud.fecha_entrega = datetime.utcnow()
     
     db.commit()
-    db.refresh(solicitud)
     
     # Notificar al vendedor
     crear_notificacion(
         db=db,
         usuario_id=solicitud.vendedor_id,
-        titulo="Producto entregado",
-        mensaje=f"{solicitud.comprador.apodo or solicitud.comprador.nombre} confirmo la entrega de {solicitud.producto.nombre}",
-        tipo="entrega_confirmada",
-        data={"solicitud_id": solicitud.id, "producto_id": solicitud.producto_id}
+        titulo="Venta confirmada",
+        mensaje=f"¡Venta realizada! {solicitud.comprador.apodo or solicitud.comprador.nombre} compró {solicitud.cantidad} unidad(es) de {producto.nombre} por ${total}",
+        tipo="venta",
+        data={"solicitud_id": solicitud.id, "producto_id": solicitud.producto_id, "total": total}
     )
     
     db.commit()
     
-    return {"mensaje": "Producto marcado como entregado", "estado": solicitud.estado}
+    return {
+        "mensaje": "Producto marcado como entregado",
+        "estado": solicitud.estado,
+        "venta": {
+            "id": venta.id,
+            "total": total,
+            "cantidad": solicitud.cantidad,
+            "producto": producto.nombre
+        }
+    }
 
 
 @router.post("/calificar")
@@ -398,3 +433,74 @@ def marcar_todas_notificaciones_leidas(
     db.commit()
     
     return {"mensaje": "Todas las notificaciones marcadas como leidas"}
+
+#VENTAS
+
+@router.get("/mis-ventas")
+def obtener_mis_ventas(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Vendedor obtiene todas sus ventas"""
+    
+    ventas = db.query(models.Venta).filter(
+        models.Venta.vendedor_id == current_user.id
+    ).order_by(models.Venta.fecha_venta.desc()).all()
+    
+    resultado = []
+    for v in ventas:
+        resultado.append({
+            "id": v.id,
+            "solicitud_id": v.solicitud_id,
+            "cantidad": v.cantidad,
+            "precio_unitario": v.precio_unitario,
+            "total": v.total,
+            "fecha_venta": v.fecha_venta,
+            "estado": v.estado,
+            "producto": {
+                "id": v.producto.id,
+                "nombre": v.producto.nombre
+            } if v.producto else None,
+            "comprador": {
+                "id": v.comprador.id,
+                "nombre": v.comprador.nombre,
+                "apodo": v.comprador.apodo
+            } if v.comprador else None
+        })
+    
+    return resultado
+
+
+@router.get("/mis-compras")
+def obtener_mis_compras(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Comprador obtiene todas sus compras realizadas"""
+    
+    ventas = db.query(models.Venta).filter(
+        models.Venta.comprador_id == current_user.id
+    ).order_by(models.Venta.fecha_venta.desc()).all()
+    
+    resultado = []
+    for v in ventas:
+        resultado.append({
+            "id": v.id,
+            "solicitud_id": v.solicitud_id,
+            "cantidad": v.cantidad,
+            "precio_unitario": v.precio_unitario,
+            "total": v.total,
+            "fecha_venta": v.fecha_venta,
+            "estado": v.estado,
+            "producto": {
+                "id": v.producto.id,
+                "nombre": v.producto.nombre
+            } if v.producto else None,
+            "vendedor": {
+                "id": v.vendedor.id,
+                "nombre": v.vendedor.nombre,
+                "apodo": v.vendedor.apodo
+            } if v.vendedor else None
+        })
+    
+    return resultado

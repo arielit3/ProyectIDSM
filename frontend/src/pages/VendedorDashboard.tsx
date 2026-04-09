@@ -10,9 +10,11 @@ import {
   obtenerNotificaciones,
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,
+  obtenerMisVentas,
   type Producto,
   type SolicitudProducto,
-  type Notificacion
+  type Notificacion,
+  type Venta
 } from "../services/products";
 import { type Usuario } from "../services/users";
 import { IconoCampanaConPunto, IconoCampana, IconoCheck, IconoX } from "../components/Iconos";
@@ -30,14 +32,21 @@ interface VendedorDashboardProps {
 
 const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   
+  // ==========================================================================
+  // ESTADOS DE LA INTERFAZ
+  // ==========================================================================
   const [showNewProductForm, setShowNewProductForm] = useState(false);
   const [showGestionProductos, setShowGestionProductos] = useState(false);
+  const [showVentas, setShowVentas] = useState(false);
   const [showNotificaciones, setShowNotificaciones] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [refrescando, setRefrescando] = useState(false);
 
+  // ==========================================================================
+  // ESTADOS DE DATOS
+  // ==========================================================================
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargandoProductos, setCargandoProductos] = useState(true);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
@@ -48,7 +57,12 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0);
+  const [ventas, setVentas] = useState<Venta[]>([]);
+  const [cargandoVentas, setCargandoVentas] = useState(false);
 
+  // ==========================================================================
+  // ESTADO DEL FORMULARIO
+  // ==========================================================================
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
@@ -56,6 +70,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     stock: "",
     categoria: CATEGORIAS_PRODUCTOS[0],
   });
+
+  // ==========================================================================
+  // FUNCIONES DE CARGA DE DATOS
+  // ==========================================================================
 
   const cargarProductos = useCallback(async () => {
     try {
@@ -101,23 +119,44 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   }, [user?.id]);
 
+  const cargarVentas = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      setCargandoVentas(true);
+      const data = await obtenerMisVentas();
+      setVentas(data);
+    } catch (error) {
+      console.error("Error al cargar ventas:", error);
+    } finally {
+      setCargandoVentas(false);
+    }
+  }, [user?.id]);
+
   const handleRefrescar = useCallback(async () => {
     setRefrescando(true);
-    await Promise.all([cargarProductos(), cargarSolicitudes(), cargarNotificaciones()]);
+    await Promise.all([cargarProductos(), cargarSolicitudes(), cargarNotificaciones(), cargarVentas()]);
     setTimeout(() => {
       setRefrescando(false);
       setSuccess("Datos actualizados");
       setTimeout(() => setSuccess(""), 2000);
     }, 500);
-  }, [cargarProductos, cargarSolicitudes, cargarNotificaciones]);
+  }, [cargarProductos, cargarSolicitudes, cargarNotificaciones, cargarVentas]);
 
+  // ==========================================================================
+  // EFECTOS INICIALES
+  // ==========================================================================
   useEffect(() => {
     if (user?.id) {
       cargarProductos();
       cargarSolicitudes();
       cargarNotificaciones();
+      cargarVentas();
     }
-  }, [user?.id, cargarProductos, cargarSolicitudes, cargarNotificaciones]);
+  }, [user?.id, cargarProductos, cargarSolicitudes, cargarNotificaciones, cargarVentas]);
+
+  // ==========================================================================
+  // FUNCIONES DE MANEJO DE FORMULARIOS
+  // ==========================================================================
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -154,6 +193,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     setImagenPreview(null);
     setProductoEditando(null);
   };
+
+  // ==========================================================================
+  // CREACION DE PRODUCTOS
+  // ==========================================================================
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,6 +262,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
+  // ==========================================================================
+  // EDICION DE PRODUCTOS
+  // ==========================================================================
+
   const handleEditarProducto = (producto: Producto) => {
     const getCategoriaValida = (cat: string | undefined): string => {
       if (cat && CATEGORIAS_PRODUCTOS.includes(cat)) {
@@ -275,6 +322,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
+  // ==========================================================================
+  // GESTION DE SOLICITUDES
+  // ==========================================================================
+
   const handleAceptarSolicitud = async (solicitudId: number) => {
     try {
       await actualizarEstadoSolicitud(solicitudId, "aceptado");
@@ -297,6 +348,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
+  // ==========================================================================
+  // NOTIFICACIONES
+  // ==========================================================================
+
   const marcarNotificacionLeidaHandler = async (notificacionId: number) => {
     try {
       await marcarNotificacionLeida(notificacionId);
@@ -318,6 +373,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
       console.error("Error al marcar todas:", error);
     }
   };
+
+  // ==========================================================================
+  // GESTION DE VISIBILIDAD Y ELIMINACION
+  // ==========================================================================
 
   const handleToggleVisibilidad = async (producto: Producto) => {
     try {
@@ -343,12 +402,25 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
+  // ==========================================================================
+  // CALCULOS PARA ESTADISTICAS
+  // ==========================================================================
+
   const totalProductos = productos.length;
   const totalStock = productos.reduce((sum, p) => sum + (typeof p.stock === 'number' ? p.stock : 0), 0);
   const productosVisibles = productos.filter(p => p.activo === 1).length;
+  const totalVentas = ventas.length;
+  const ingresosTotales = ventas.reduce((sum, v) => sum + v.total, 0);
+
+  // ==========================================================================
+  // RENDERIZADO DEL COMPONENTE
+  // ==========================================================================
 
   return (
     <div className="vendedor-dashboard">
+      {/* ======================================================================
+           HEADER DEL VENDEDOR
+      ====================================================================== */}
       <div className="vendedor-header">
         <div className="vendedor-welcome">
           <div className="vendedor-header-top">
@@ -462,19 +534,23 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
           </div>
           <div className="stat-card">
             <div className="stat-info">
-              <h3>0</h3>
+              <h3>{totalVentas}</h3>
               <p>Ventas</p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* ======================================================================
+           ACCIONES RAPIDAS
+      ====================================================================== */}
       <div className="acciones-rapidas">
         <button 
           className="btn-publicar"
           onClick={() => {
             setShowNewProductForm(!showNewProductForm);
             setShowGestionProductos(false);
+            setShowVentas(false);
             resetForm();
             setError("");
             setSuccess("");
@@ -487,6 +563,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
           onClick={() => {
             setShowGestionProductos(!showGestionProductos);
             setShowNewProductForm(false);
+            setShowVentas(false);
             resetForm();
             setError("");
             setSuccess("");
@@ -494,7 +571,20 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         >
           Gestionar Productos
         </button>
-        <button className="btn-ventas">Ver Ventas</button>
+        <button 
+          className="btn-ventas"
+          onClick={() => {
+            setShowVentas(!showVentas);
+            setShowGestionProductos(false);
+            setShowNewProductForm(false);
+            resetForm();
+            setError("");
+            setSuccess("");
+            cargarVentas();
+          }}
+        >
+          Ver Ventas
+        </button>
         <button 
           className="btn-refrescar"
           onClick={handleRefrescar}
@@ -504,7 +594,9 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </button>
       </div>
 
-      {/* Formulario de nuevo producto */}
+      {/* ======================================================================
+           FORMULARIO PARA CREAR NUEVO PRODUCTO
+      ====================================================================== */}
       {showNewProductForm && (
         <div className="nuevo-producto-form">
           <h2>Crear nueva publicación</h2>
@@ -565,7 +657,9 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </div>
       )}
 
-      {/* Gestion de productos */}
+      {/* ======================================================================
+           PANEL DE GESTION DE PRODUCTOS
+      ====================================================================== */}
       {showGestionProductos && (
         <div className="gestion-productos">
           <h2>Gestionar Productos</h2>
@@ -608,7 +702,51 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </div>
       )}
 
-      {/* Modal de edicion */}
+      {/* ======================================================================
+           PANEL DE VENTAS
+      ====================================================================== */}
+      {showVentas && (
+        <div className="ventas-panel">
+          <div className="ventas-header">
+            <h2>Mis Ventas</h2>
+            <button className="btn-cerrar-ventas" onClick={() => setShowVentas(false)}>×</button>
+          </div>
+          
+          {cargandoVentas ? (
+            <div className="empty-state">Cargando ventas...</div>
+          ) : ventas.length === 0 ? (
+            <div className="empty-state">No tienes ventas aún</div>
+          ) : (
+            <>
+              <div className="ventas-lista">
+                {ventas.map(venta => (
+                  <div key={venta.id} className="venta-card">
+                    <div className="venta-info">
+                      <h3>{venta.producto?.nombre}</h3>
+                      <p>Comprador: {venta.comprador?.apodo || venta.comprador?.nombre}</p>
+                      <p>Cantidad: {venta.cantidad}</p>
+                      <p>Precio unitario: ${venta.precio_unitario}</p>
+                      <p className="venta-total">Total: ${venta.total}</p>
+                      <small>{new Date(venta.fecha_venta).toLocaleDateString()}</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Resumen de ventas */}
+              <div className="ventas-resumen">
+                <h3>Resumen</h3>
+                <p>Total de ventas: {ventas.length}</p>
+                <p>Ingresos totales: ${ingresosTotales}</p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ======================================================================
+           MODAL DE EDICION
+      ====================================================================== */}
       {productoEditando && (
         <div className="modal-overlay">
           <div className="modal-content">

@@ -192,7 +192,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         mensaje: mensajeSolicitud
       });
       
-      setMensajeExito(prev => ({ ...prev, [productoSeleccionado.id]: "✅ Solicitud enviada" }));
+      setMensajeExito(prev => ({ ...prev, [productoSeleccionado.id]: "Solicitud enviada" }));
       setTimeout(() => {
         setMensajeExito(prev => {
           const nuevo = { ...prev };
@@ -207,7 +207,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
       
     } catch (error: any) {
       console.error("Error al enviar solicitud:", error);
-      setMensajeExito(prev => ({ ...prev, [productoSeleccionado.id]: "❌ Error al enviar" }));
+      setMensajeExito(prev => ({ ...prev, [productoSeleccionado.id]: "Error al enviar" }));
       setTimeout(() => {
         setMensajeExito(prev => {
           const nuevo = { ...prev };
@@ -223,7 +223,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   const handleMarcarEntregado = async (solicitudId: number) => {
     try {
       await marcarSolicitudComoEntregada(solicitudId);
-      alert("✅ Producto marcado como entregado");
+      alert("Producto marcado como entregado");
       cargarSolicitudesEnviadas();
       cargarNotificaciones();
       setModalEntregaAbierto(false);
