@@ -3031,6 +3031,72 @@
   background-color: #e74c3c;
 }
 
+/* ===== DESPLEGABLE PARA SOLICITUDES ===== */
+.section-header.clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.section-header.clickable:hover {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding-left: 10px;
+}
+
+.desplegable-icon {
+  display: inline-block;
+  transition: transform 0.3s ease;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  margin-left: 12px;
+}
+
+.desplegable-icon.abierto {
+  transform: rotate(180deg);
+}
+
+/* ===== ICONO DE CAMPANA PARA COMPRADOR (color verde) ===== */
+.icono-campana-comprador {
+  color: #ABC270 !important;
+}
+
+.icono-campana-comprador:hover {
+  color: #8faf5c !important;
+}
+
+/* Asegurar que el ícono tenga buen tamaño */
+.campana-btn .icono-campana {
+  width: 24px;
+  height: 24px;
+}
+
+/* Para el badge de la campana */
+.campana-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #e74c3c;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 50%;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .section-header.clickable {
+    padding: 8px 0;
+  }
+  
+  .desplegable-icon {
+    font-size: 0.8rem;
+  }
+}
+
 /* ============================================================================
    RESPONSIVE DESIGN - MEDIA QUERIES GLOBALES
    ============================================================================ */

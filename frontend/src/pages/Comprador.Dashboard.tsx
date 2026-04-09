@@ -81,6 +81,9 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   const [vendedorReportado, setVendedorReportado] = useState<{ id: number; nombre: string } | null>(null);
   const [motivoReporte, setMotivoReporte] = useState("");
   const [enviandoReporte, setEnviandoReporte] = useState(false);
+
+  //Estados interfaz 
+  const [solicitudesDesplegado, setSolicitudesDesplegado] = useState(true);
   
   // ==========================================================================
   // ESTADO PARA MODAL DE MENSAJES (reemplaza alert)
@@ -489,20 +492,20 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
 
       {/* NOTIFICACIONES Y SOLICITUD DE VENDEDOR */}
       <div className="top-actions">
-        <div className="notificaciones-container">
-          <button 
-            className="campana-btn"
-            onClick={() => setShowNotificaciones(!showNotificaciones)}
-          >
-            {notificacionesNoLeidas > 0 ? (
-              <IconoCampanaConPunto className="icono-campana" />
-            ) : (
-              <IconoCampana className="icono-campana" />
-            )}
-            {notificacionesNoLeidas > 0 && (
-              <span className="campana-badge">{notificacionesNoLeidas}</span>
-            )}
-          </button>
+  <div className="notificaciones-container">
+    <button 
+      className="campana-btn"
+      onClick={() => setShowNotificaciones(!showNotificaciones)}
+    >
+      {notificacionesNoLeidas > 0 ? (
+        <IconoCampanaConPunto className="icono-campana icono-campana-comprador" />
+      ) : (
+        <IconoCampana className="icono-campana icono-campana-comprador" />
+      )}
+      {notificacionesNoLeidas > 0 && (
+        <span className="campana-badge">{notificacionesNoLeidas}</span>
+      )}
+    </button>
           
           {showNotificaciones && (
             <div className="notificaciones-dropdown">
@@ -548,42 +551,55 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
 
       {/* MIS SOLICITUDES */}
       <div className="solicitudes-section">
-        <h2 className="section-title">Mis Solicitudes</h2>
-        {solicitudesEnviadas.length === 0 ? (
-          <div className="empty-state">No has realizado solicitudes</div>
-        ) : (
-          <div className="solicitudes-grid">
-            {solicitudesEnviadas.map(solicitud => (
-              <div key={solicitud.id} className="solicitud-card">
-                <div className="solicitud-header">
-                  <span className="producto-nombre">{solicitud.producto?.nombre}</span>
-                  <span className={`estado-badge ${solicitud.estado}`}>
-                    {solicitud.estado === "pendiente" ? "Pendiente" :
-                     solicitud.estado === "aceptado" ? "Aceptado" :
-                     solicitud.estado === "rechazado" ? "Rechazado" :
-                     solicitud.estado === "entregado" ? "Entregado" : "Completado"}
-                  </span>
-                </div>
-                <div className="solicitud-body">
-                  <p>Cantidad: {solicitud.cantidad}</p>
-                  <p>Vendedor: {solicitud.vendedor?.apodo || solicitud.vendedor?.nombre}</p>
-                  {solicitud.mensaje && <p>Mensaje: "{solicitud.mensaje}"</p>}
-                </div>
-                <div className="solicitud-actions">
-                  {solicitud.estado === "aceptado" && (
-                    <button 
-                      className="btn-entregar"
-                      onClick={() => abrirModalEntrega(solicitud)}
-                    >
-                      Marcar como entregado
-                    </button>
-                  )}
-                </div>
+  <div 
+    className="section-header clickable" 
+    onClick={() => setSolicitudesDesplegado(!solicitudesDesplegado)}
+  >
+    <h2 className="section-title">Mis Solicitudes</h2>
+    <span className={`desplegable-icon ${solicitudesDesplegado ? 'abierto' : ''}`}>
+      ▼
+    </span>
+  </div>
+  
+  {solicitudesDesplegado && (
+    <>
+      {solicitudesEnviadas.length === 0 ? (
+        <div className="empty-state">No has realizado solicitudes</div>
+      ) : (
+        <div className="solicitudes-grid">
+          {solicitudesEnviadas.map(solicitud => (
+            <div key={solicitud.id} className="solicitud-card">
+              <div className="solicitud-header">
+                <span className="producto-nombre">{solicitud.producto?.nombre}</span>
+                <span className={`estado-badge ${solicitud.estado}`}>
+                  {solicitud.estado === "pendiente" ? "Pendiente" :
+                   solicitud.estado === "aceptado" ? "Aceptado" :
+                   solicitud.estado === "rechazado" ? "Rechazado" :
+                   solicitud.estado === "entregado" ? "Entregado" : "Completado"}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div className="solicitud-body">
+                <p>Cantidad: {solicitud.cantidad}</p>
+                <p>Vendedor: {solicitud.vendedor?.apodo || solicitud.vendedor?.nombre}</p>
+                {solicitud.mensaje && <p>Mensaje: "{solicitud.mensaje}"</p>}
+              </div>
+              <div className="solicitud-actions">
+                {solicitud.estado === "aceptado" && (
+                  <button 
+                    className="btn-entregar"
+                    onClick={() => abrirModalEntrega(solicitud)}
+                  >
+                    Marcar como entregado
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )}
+</div>
 
       {/* CATEGORIAS */}
       {productos.length > 0 && (
