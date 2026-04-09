@@ -273,3 +273,107 @@ export async function obtenerMisCompras(): Promise<Venta[]> {
   });
   return response.data;
 }
+
+//Esto
+// ============================================================================
+// SOLICITUDES PARA SER VENDEDOR
+// ============================================================================
+
+export interface SolicitudVendedor {
+  id: number;
+  usuario_id: number;
+  motivo: string;
+  estado: string;
+  fecha_solicitud: string;
+  fecha_respuesta: string | null;
+  respuesta_admin: string | null;
+  usuario?: {
+    id: number;
+    nombre: string;
+    apodo: string;
+    correo: string;
+  };
+}
+
+export interface CrearSolicitudVendedorData {
+  motivo: string;
+}
+
+/**
+ * Crea una solicitud para ser vendedor
+ */
+export async function crearSolicitudVendedor(data: CrearSolicitudVendedorData): Promise<SolicitudVendedor> {
+  const response = await axios.post(`${API_URL}/solicitudes-vendedor/`, data, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+/**
+ * Obtiene todas las solicitudes de vendedor (solo admin)
+ */
+export async function obtenerSolicitudesVendedor(): Promise<SolicitudVendedor[]> {
+  const response = await axios.get(`${API_URL}/solicitudes-vendedor/`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+/**
+ * Obtiene la solicitud del usuario actual (si existe)
+ */
+export async function obtenerMiSolicitudVendedor(): Promise<SolicitudVendedor | null> {
+  const response = await axios.get(`${API_URL}/solicitudes-vendedor/mi-solicitud`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+/**
+ * Aprueba o rechaza una solicitud de vendedor (solo admin)
+ */
+export async function procesarSolicitudVendedor(
+  solicitudId: number,
+  estado: string,
+  respuesta_admin: string
+): Promise<SolicitudVendedor> {
+  const response = await axios.put(
+    `${API_URL}/solicitudes-vendedor/${solicitudId}`,
+    { estado, respuesta_admin },
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
+// ============================================================================
+// CIFRADO DE MENSAJES
+// ============================================================================
+
+import { cifrarSHA256 } from "../utils/cifrado";
+
+export interface MensajeCifrado {
+  textoOriginal: string;
+  hash: string;
+}
+
+/**
+ * Envia un mensaje cifrado (para solicitudes, quejas, etc.)
+ * @param mensaje - Texto a enviar
+ * @returns Objeto con texto original y hash
+ */
+export function prepararMensajeCifrado(mensaje: string): MensajeCifrado {
+  return {
+    textoOriginal: mensaje,
+    hash: cifrarSHA256(mensaje)
+  };
+}
+
+/**
+ * Verifica la integridad de un mensaje
+ * @param mensaje - Mensaje recibido
+ * @param hash - Hash almacenado
+ * @returns true si el mensaje no ha sido alterado
+ */
+export function verificarIntegridadMensaje(mensaje: string, hash: string): boolean {
+  return cifrarSHA256(mensaje) === hash;
+}

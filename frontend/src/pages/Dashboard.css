@@ -2737,6 +2737,98 @@
   100% { opacity: 0; transform: translateY(-5px); }
 }
 
+/* ===== BOTON DE SOLICITAR VENDEDOR ===== */
+.top-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.btn-solicitar-vendedor {
+  padding: 10px 24px;
+  background-color: var(--accent-yellow);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-full);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-solicitar-vendedor:hover:not(:disabled) {
+  background-color: var(--accent-yellow-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-solicitar-vendedor:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== TABS CON BADGE ===== */
+.tab-badge {
+  display: inline-block;
+  background-color: #e74c3c;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 8px;
+}
+
+/* ===== MODAL SOLICITUD VENDEDOR ===== */
+.modal-solicitud-vendedor {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  width: 90%;
+  max-width: 500px;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal-solicitud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 2px solid var(--border-light);
+}
+
+.modal-solicitud-header h3 {
+  margin: 0;
+  color: var(--text-dark);
+}
+
+.modal-solicitud-body {
+  padding: 24px;
+}
+
+.motivo-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius-md);
+  font-family: inherit;
+  resize: vertical;
+  margin-top: 10px;
+}
+
+.motivo-input:focus {
+  outline: none;
+  border-color: var(--primary-green);
+}
+
+.modal-solicitud-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--border-light);
+}
+
 /* ============================================================================
    RESPONSIVE DESIGN - MEDIA QUERIES GLOBALES
    ============================================================================ */
@@ -3023,4 +3115,348 @@
     padding: 6px 14px;
     font-size: 0.8rem;
   }
+}
+
+
+
+
+
+
+/* ===== MODAL DE MENSAJES (reemplaza alert) ===== */
+.modal-mensaje-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  backdrop-filter: blur(3px);
+}
+
+.modal-mensaje-content {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal-mensaje-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: bold;
+  margin: 0 auto 20px;
+}
+
+.modal-mensaje-icon.info {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.modal-mensaje-icon.success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.modal-mensaje-icon.error {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.modal-mensaje-icon.warning {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.modal-mensaje-content h3 {
+  margin: 0 0 12px;
+  color: #2c3e50;
+  font-size: 1.3rem;
+}
+
+.modal-mensaje-content p {
+  margin: 0 0 24px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.modal-mensaje-btn {
+  background-color: #ABC270;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modal-mensaje-btn:hover {
+  background-color: #8faf5c;
+  transform: translateY(-2px);
+}
+
+/* ===== BOTON DE SOLICITAR VENDEDOR ===== */
+.top-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.btn-solicitar-vendedor {
+  padding: 10px 24px;
+  background-color: #FEC868;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-solicitar-vendedor:hover:not(:disabled) {
+  background-color: #e5b45a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.btn-solicitar-vendedor:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== TABS CON BADGE ===== */
+.tab-badge {
+  display: inline-block;
+  background-color: #e74c3c;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 8px;
+}
+
+/* ===== MODAL SOLICITUD VENDEDOR ===== */
+.modal-solicitud-vendedor {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal-solicitud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.modal-solicitud-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.modal-solicitud-body {
+  padding: 24px;
+}
+
+.motivo-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: inherit;
+  resize: vertical;
+  margin-top: 10px;
+}
+
+.motivo-input:focus {
+  outline: none;
+  border-color: #ABC270;
+}
+
+.modal-solicitud-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Contenedor de notificaciones - posición relativa */
+.notificaciones-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Dropdown de notificaciones - posicionado a la derecha */
+.notificaciones-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;  /* Cambia de left a right */
+  margin-top: 10px;
+  width: 380px;
+  max-width: 90vw;  /* Para pantallas pequeñas */
+  max-height: 500px;
+  overflow-y: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  border: 1px solid #e0e0e0;
+}
+
+/* Para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .notificaciones-dropdown {
+    width: calc(100vw - 20px);
+    right: -10px;
+    left: auto;
+  }
+}
+
+/* Ajuste del botón de la campana */
+.campana-btn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.campana-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Badge de notificaciones */
+.campana-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #f44336;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* Header del dropdown */
+.notificaciones-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+}
+
+.notificaciones-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.marcar-todas {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.marcar-todas:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Cada notificación */
+.notificacion-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.notificacion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.notificacion-item.no-leida {
+  background-color: #e3f2fd;
+}
+
+.notificacion-item.no-leida:hover {
+  background-color: #d1e8f5;
+}
+
+.notificacion-info strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.notificacion-info p {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  color: #666;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+.notificacion-info small {
+  font-size: 11px;
+  color: #999;
+}
+
+.sin-notificaciones {
+  padding: 40px 16px;
+  text-align: center;
+  color: #999;
+}
+
+/* Ajuste del contenedor padre top-actions */
+.top-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 0 20px;
+  position: relative;
 }
