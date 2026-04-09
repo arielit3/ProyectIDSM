@@ -4,7 +4,10 @@ import {
   obtenerSolicitudesVendedor, 
   procesarSolicitudVendedor,
   prepararMensajeCifrado,
-  type SolicitudVendedor 
+  obtenerTodosReportes,
+  actualizarReporte,
+  type SolicitudVendedor,
+  type ReporteVendedor
 } from "../services/products";
 import { IconoCheck, IconoX } from "../components/Iconos";
 import "./Dashboard.css";
@@ -34,10 +37,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // ==========================================================================
 
   const [solicitudesVendedor, setSolicitudesVendedor] = useState<SolicitudVendedor[]>([]);
+  const [reportes, setReportes] = useState<ReporteVendedor[]>([]);
   const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false);
+  const [cargandoReportes, setCargandoReportes] = useState(false);
   const [tabActiva, setTabActiva] = useState<string>("usuarios");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [filtroReporte, setFiltroReporte] = useState<string>("todos");
   
   // ==========================================================================
   // ESTADOS PARA MODALES
@@ -46,7 +50,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [solicitudActual, setSolicitudActual] = useState<{id: number, accion: string, nombre: string} | null>(null);
   const [respuestaAdmin, setRespuestaAdmin] = useState("");
   
-  // Modal de mensajes (reemplaza alert)
+  const [modalReporteAbierto, setModalReporteAbierto] = useState(false);
+  const [reporteActual, setReporteActual] = useState<ReporteVendedor | null>(null);
+  const [respuestaReporte, setRespuestaReporte] = useState("");
+  
+  // Modal de mensajes
   const [modalMensaje, setModalMensaje] = useState<{
     isOpen: boolean;
     titulo: string;
@@ -81,22 +89,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
     
     try {
-      // Cifrar la respuesta antes de enviarla
       const respuestaCifrada = prepararMensajeCifrado(respuestaAdmin);
       
       await procesarSolicitudVendedor(
         solicitudActual.id, 
         solicitudActual.accion, 
-        respuestaCifrada.textoOriginal,
+        respuestaCifrada.textoOriginal
       );
       
       mostrarMensaje("Exito", `Solicitud ${solicitudActual.accion === "aprobado" ? "aprobada" : "rechazada"} correctamente`, "success");
-      cargarSolicitudesVendedor();
+      await cargarSolicitudesVendedor();
       onListarUsuarios();
       setModalRespuestaAbierto(false);
       setSolicitudActual(null);
     } catch (error: any) {
       mostrarMensaje("Error", error.response?.data?.detail || "Error al procesar solicitud", "error");
+    }
+  };
+
+  // Funciones para reportes
+  const abrirModalReporte = (reporte: ReporteVendedor) => {
+    setReporteActual(reporte);
+    setRespuestaReporte("");
+    setModalReporteAbierto(true);
+  };
+
+  const procesarReporte = async (nuevoEstado: string) => {
+    if (!reporteActual) return;
+    
+    try {
+      await actualizarReporte(reporteActual.id, nuevoEstado, respuestaReporte || undefined);
+      
+      mostrarMensaje(
+        "Reporte actualizado", 
+        `El reporte ha sido marcado como ${nuevoEstado === "resuelto" ? "resuelto" : "rechazado"}`,
+        "success"
+      );
+      
+      await cargarReportes();
+      setModalReporteAbierto(false);
+      setReporteActual(null);
+      setRespuestaReporte("");
+    } catch (error: any) {
+      mostrarMensaje("Error", error.message || "Error al procesar reporte", "error");
     }
   };
 
@@ -117,10 +152,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, []);
 
-  // Cargar solicitudes al montar el componente
+  const cargarReportes = useCallback(async () => {
+    try {
+      setCargandoReportes(true);
+      const filtroEstado = filtroReporte === "todos" ? undefined : filtroReporte;
+      const data = await obtenerTodosReportes(filtroEstado);
+      setReportes(data);
+    } catch (error) {
+      console.error("Error al cargar reportes:", error);
+      mostrarMensaje("Error", "No se pudieron cargar los reportes", "error");
+    } finally {
+      setCargandoReportes(false);
+    }
+  }, [filtroReporte]);
+
+  // Cargar datos al montar el componente o cambiar tab
   useEffect(() => {
-    cargarSolicitudesVendedor();
-  }, [cargarSolicitudesVendedor]);
+    if (tabActiva === "solicitudes") {
+      cargarSolicitudesVendedor();
+    } else if (tabActiva === "reportes") {
+      cargarReportes();
+    } else if (tabActiva === "usuarios") {
+      onListarUsuarios();
+    }
+  }, [tabActiva, cargarSolicitudesVendedor, cargarReportes, onListarUsuarios]);
 
   // ==========================================================================
   // CALCULOS PARA ESTADISTICAS
@@ -130,6 +185,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const totalVendedores = usuarios.filter(u => u.relacion?.rol === "vendedor").length;
   const totalClientes = usuarios.filter(u => u.relacion?.rol === "cliente").length;
   const solicitudesPendientes = solicitudesVendedor.filter(s => s.estado === "pendiente").length;
+  const reportesPendientes = reportes.filter(r => r.estado === "pendiente").length;
+
+  const getRolNombre = (rol: string | undefined) => {
+    if (rol === "administrador") return "Administrador";
+    if (rol === "vendedor") return "Vendedor";
+    if (rol === "cliente") return "Cliente";
+    return "Sin rol";
+  };
 
   // ==========================================================================
   // RENDERIZADO DEL COMPONENTE
@@ -138,9 +201,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="admin-dashboard">
       
-      {/* ======================================================================
-           HEADER DEL ADMINISTRADOR
-      ====================================================================== */}
+      {/* HEADER DEL ADMINISTRADOR */}
       <div className="admin-header">
         <div className="admin-welcome">
           <h1>Panel de Administrador</h1>
@@ -171,39 +232,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p>Solicitudes pendientes</p>
             </div>
           </div>
+          <div className="stat-card">
+            <div className="stat-info">
+              <h3>{reportesPendientes}</h3>
+              <p>Reportes pendientes</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ======================================================================
-           TABS DE NAVEGACION
-      ====================================================================== */}
+      {/* TABS DE NAVEGACION */}
       <div className="admin-tabs">
         <button 
           className={`tab-btn ${tabActiva === "usuarios" ? "active" : ""}`}
-          onClick={() => {
-            setTabActiva("usuarios");
-            onListarUsuarios();
-          }}
+          onClick={() => setTabActiva("usuarios")}
         >
           Listar Usuarios
         </button>
         <button 
           className={`tab-btn ${tabActiva === "solicitudes" ? "active" : ""}`}
-          onClick={() => {
-            setTabActiva("solicitudes");
-            cargarSolicitudesVendedor();
-          }}
+          onClick={() => setTabActiva("solicitudes")}
         >
           Solicitudes de Vendedor
           {solicitudesPendientes > 0 && (
             <span className="tab-badge">{solicitudesPendientes}</span>
           )}
         </button>
+        <button 
+          className={`tab-btn ${tabActiva === "reportes" ? "active" : ""}`}
+          onClick={() => setTabActiva("reportes")}
+        >
+          Reportes de Vendedores
+          {reportesPendientes > 0 && (
+            <span className="tab-badge reportes">{reportesPendientes}</span>
+          )}
+        </button>
       </div>
 
-      {/* ======================================================================
-           PANEL DE USUARIOS
-      ====================================================================== */}
+      {/* PANEL DE USUARIOS */}
       {tabActiva === "usuarios" && usuarios.length > 0 && (
         <div className="admin-section">
           <div className="section-header">
@@ -232,9 +298,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <td>{u.telefono || "-"}</td>
                     <td className="matricula-col">{u.relacion?.matricula}</td>
                     <td>
-                      <span className={`role-badge ${u.relacion?.rol}`}>
-                        {u.relacion?.rol === "administrador" ? "Administrador" :
-                         u.relacion?.rol === "vendedor" ? "Vendedor" : "Cliente"}
+                      <span className={`role-badge ${u.relacion?.rol || "sin-rol"}`}>
+                        {getRolNombre(u.relacion?.rol)}
                       </span>
                     </td>
                   </tr>
@@ -245,9 +310,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* ======================================================================
-           PANEL DE SOLICITUDES DE VENDEDOR
-      ====================================================================== */}
+      {/* PANEL DE SOLICITUDES DE VENDEDOR */}
       {tabActiva === "solicitudes" && (
         <div className="admin-section">
           <div className="section-header">
@@ -282,7 +345,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
                   </div>
                   
-                  {/* Botones de accion - solo visibles para solicitudes pendientes */}
                   {solicitud.estado === "pendiente" && (
                     <div className="solicitud-actions">
                       <button 
@@ -306,9 +368,84 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* ======================================================================
-           MODAL DE RESPUESTA DEL ADMIN
-      ====================================================================== */}
+      {/* PANEL DE REPORTES DE VENDEDORES */}
+      {tabActiva === "reportes" && (
+        <div className="admin-section">
+          <div className="section-header">
+            <h2>Reportes de Vendedores</h2>
+            <div className="filtros-reportes">
+              <button 
+                className={`filtro-btn ${filtroReporte === "todos" ? "active" : ""}`}
+                onClick={() => setFiltroReporte("todos")}
+              >
+                Todos
+              </button>
+              <button 
+                className={`filtro-btn ${filtroReporte === "pendiente" ? "active" : ""}`}
+                onClick={() => setFiltroReporte("pendiente")}
+              >
+                Pendientes
+              </button>
+              <button 
+                className={`filtro-btn ${filtroReporte === "resuelto" ? "active" : ""}`}
+                onClick={() => setFiltroReporte("resuelto")}
+              >
+                Resueltos
+              </button>
+              <button 
+                className={`filtro-btn ${filtroReporte === "rechazado" ? "active" : ""}`}
+                onClick={() => setFiltroReporte("rechazado")}
+              >
+                Rechazados
+              </button>
+            </div>
+          </div>
+          
+          {cargandoReportes ? (
+            <div className="empty-state">Cargando reportes...</div>
+          ) : reportes.length === 0 ? (
+            <div className="empty-state">No hay reportes de vendedores</div>
+          ) : (
+            <div className="reportes-grid">
+              {reportes.map(reporte => (
+                <div key={reporte.id} className={`reporte-card ${reporte.estado}`}>
+                  <div className="reporte-header">
+                    <div>
+                      <span className="reporte-vendedor">Vendedor: {reporte.vendedor_nombre}</span>
+                      <span className="reporte-comprador">Reportado por: {reporte.comprador_nombre}</span>
+                    </div>
+                    <span className={`estado-badge ${reporte.estado}`}>
+                      {reporte.estado === "pendiente" ? "Pendiente" :
+                       reporte.estado === "resuelto" ? "Resuelto" : "Rechazado"}
+                    </span>
+                  </div>
+                  <div className="reporte-body">
+                    <p><strong>Motivo del reporte:</strong></p>
+                    <p className="reporte-motivo">{reporte.motivo}</p>
+                    <p><strong>Fecha:</strong> {new Date(reporte.fecha_creacion).toLocaleString()}</p>
+                    {reporte.respuesta_admin && (
+                      <p><strong>Respuesta del admin:</strong> {reporte.respuesta_admin}</p>
+                    )}
+                  </div>
+                  
+                  {reporte.estado === "pendiente" && (
+                    <div className="reporte-actions">
+                      <button 
+                        className="btn-resolver"
+                        onClick={() => abrirModalReporte(reporte)}
+                      >
+                        Revisar Reporte
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODAL DE RESPUESTA DEL ADMIN (Solicitudes) */}
       {modalRespuestaAbierto && solicitudActual && (
         <div className="modal-overlay" onClick={() => setModalRespuestaAbierto(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -329,9 +466,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* ======================================================================
-           MODAL DE MENSAJES (reemplaza alert)
-      ====================================================================== */}
+      {/* MODAL DE REVISION DE REPORTE */}
+      {modalReporteAbierto && reporteActual && (
+        <div className="modal-overlay" onClick={() => setModalReporteAbierto(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Revisar Reporte</h3>
+            <div className="reporte-detalle">
+              <p><strong>Vendedor:</strong> {reporteActual.vendedor_nombre}</p>
+              <p><strong>Reportado por:</strong> {reporteActual.comprador_nombre}</p>
+              <p><strong>Motivo:</strong></p>
+              <p className="reporte-motivo">{reporteActual.motivo}</p>
+            </div>
+            
+            <div className="form-group" style={{ marginTop: "20px" }}>
+              <label>Respuesta del administrador (opcional):</label>
+              <textarea
+                value={respuestaReporte}
+                onChange={(e) => setRespuestaReporte(e.target.value)}
+                placeholder="Ej: Hemos revisado el reporte y tomaremos las medidas correspondientes..."
+                rows={3}
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd", fontFamily: "inherit", marginTop: "8px" }}
+              />
+            </div>
+            
+            <div className="modal-actions" style={{ display: "flex", gap: "12px", marginTop: "20px", justifyContent: "flex-end" }}>
+              <button className="btn-cancelar" onClick={() => setModalReporteAbierto(false)}>Cancelar</button>
+              <button className="btn-rechazar" onClick={() => procesarReporte("rechazado")}>Rechazar Reporte</button>
+              <button className="btn-aprobar" onClick={() => procesarReporte("resuelto")}>Marcar como Resuelto</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE MENSAJES */}
       {modalMensaje.isOpen && (
         <div className="modal-mensaje-overlay" onClick={() => setModalMensaje({ ...modalMensaje, isOpen: false })}>
           <div className="modal-mensaje-content" onClick={(e) => e.stopPropagation()}>

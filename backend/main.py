@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import users, login, productos, email, solicitudes
+from routers import users, login, productos, email, solicitudes, reportes
 from fastapi.staticfiles import StaticFiles #Para las imagenes estaticas
 
 import os
@@ -45,3 +45,4 @@ app.include_router(login.router)
 app.include_router(productos.router)
 app.include_router(email.router)
 app.include_router(solicitudes.router)
+app.include_router(reportes.router)

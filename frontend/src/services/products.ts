@@ -377,3 +377,82 @@ export function prepararMensajeCifrado(mensaje: string): MensajeCifrado {
 export function verificarIntegridadMensaje(mensaje: string, hash: string): boolean {
   return cifrarSHA256(mensaje) === hash;
 }
+
+// ============================================================================
+// REPORTES DE VENDEDORES
+// ============================================================================
+
+export interface ReporteVendedor {
+  id: number;
+  comprador_id: number;
+  vendedor_id: number;
+  motivo: string;
+  estado: string;
+  respuesta_admin: string | null;
+  fecha_creacion: string;
+  fecha_resolucion: string | null;
+  comprador_nombre?: string;
+  vendedor_nombre?: string;
+}
+
+export interface CrearReporteData {
+  vendedor_id: number;
+  motivo: string;
+}
+
+/**
+ * Crea un reporte contra un vendedor
+ */
+export async function crearReporteVendedor(data: CrearReporteData): Promise<ReporteVendedor> {
+  const response = await axios.post(`${API_URL}/reportes/vendedor`, data, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+/**
+ * Obtiene todos los reportes (solo admin)
+ */
+export async function obtenerTodosReportes(estado?: string): Promise<ReporteVendedor[]> {
+  const url = estado ? `${API_URL}/reportes/todos?estado=${estado}` : `${API_URL}/reportes/todos`;
+  const response = await axios.get(url, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+/**
+ * Obtiene reportes de un vendedor específico (solo admin)
+ */
+export async function obtenerReportesVendedor(vendedorId: number): Promise<ReporteVendedor[]> {
+  const response = await axios.get(`${API_URL}/reportes/vendedor/${vendedorId}`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+/**
+ * Actualiza el estado de un reporte (solo admin)
+ */
+export async function actualizarReporte(
+  reporteId: number,
+  estado: string,
+  respuesta_admin?: string
+): Promise<ReporteVendedor> {
+  const response = await axios.put(
+    `${API_URL}/reportes/${reporteId}`,
+    { estado, respuesta_admin: respuesta_admin || "" },
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
+/**
+ * Cuenta los reportes de un vendedor
+ */
+export async function contarReportesVendedor(vendedorId: number): Promise<{ total: number; pendientes: number; resueltos: number }> {
+  const response = await axios.get(`${API_URL}/reportes/vendedor/${vendedorId}/contar`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}

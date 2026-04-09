@@ -157,3 +157,23 @@ class Notificacion(Base):
     fecha_creacion = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     usuario = relationship("Usuario", back_populates="notificaciones")
+    
+# ============================================================================
+# REPORTES DE VENDEDORES 
+# ============================================================================
+
+class ReporteVendedor(Base):
+    __tablename__ = "reportes_vendedor"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    comprador_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    vendedor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    motivo = Column(Text, nullable=False)
+    estado = Column(String(20), default="pendiente")
+    respuesta_admin = Column(Text, nullable=True)
+    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+    fecha_resolucion = Column(DateTime, nullable=True)
+    
+    # Relaciones
+    comprador = relationship("Usuario", foreign_keys=[comprador_id], backref="reportes_enviados")
+    vendedor = relationship("Usuario", foreign_keys=[vendedor_id], backref="reportes_recibidos")

@@ -14,6 +14,7 @@ import {
   crearSolicitudVendedor,
   obtenerMiSolicitudVendedor,
   prepararMensajeCifrado,
+  crearReporteVendedor,
   type SolicitudProducto,
   type Notificacion,
   type SolicitudVendedor
@@ -74,6 +75,12 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   const [modalSolicitudVendedorAbierto, setModalSolicitudVendedorAbierto] = useState(false);
   const [motivoSolicitudVendedor, setMotivoSolicitudVendedor] = useState("");
   const [enviandoSolicitudVendedor, setEnviandoSolicitudVendedor] = useState(false);
+  
+  // Estados para reportes
+  const [modalReporteAbierto, setModalReporteAbierto] = useState(false);
+  const [vendedorReportado, setVendedorReportado] = useState<{ id: number; nombre: string } | null>(null);
+  const [motivoReporte, setMotivoReporte] = useState("");
+  const [enviandoReporte, setEnviandoReporte] = useState(false);
   
   // ==========================================================================
   // ESTADO PARA MODAL DE MENSAJES (reemplaza alert)
@@ -266,7 +273,6 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     setSolicitando(productoSeleccionado.id);
     
     try {
-      // Cifrar el mensaje antes de enviarlo
       const mensajeCifrado = mensajeSolicitud ? prepararMensajeCifrado(mensajeSolicitud) : null;
       
       await crearSolicitudProducto({
@@ -274,7 +280,6 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         vendedor_id: productoSeleccionado.vendedor_id,
         cantidad: cantidadSolicitud,
         mensaje: mensajeCifrado ? mensajeCifrado.textoOriginal : "",
-        
       });
       
       setMensajeExito(prev => ({ ...prev, [productoSeleccionado.id]: "Solicitud enviada" }));
@@ -345,7 +350,6 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     setEnviandoSolicitudVendedor(true);
     
     try {
-      // Cifrar el motivo antes de enviarlo
       const motivoCifrado = prepararMensajeCifrado(motivoSolicitudVendedor);
       
       await crearSolicitudVendedor({ 
@@ -360,6 +364,65 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
       mostrarMensaje("Error", error.response?.data?.detail || "Error al enviar solicitud", "error");
     } finally {
       setEnviandoSolicitudVendedor(false);
+    }
+  };
+
+  // ==========================================================================
+  // FUNCIONES DE REPORTE DE VENDEDOR
+  // ==========================================================================
+
+  const abrirModalReporte = (vendedorId: number, vendedorNombre: string) => {
+    setVendedorReportado({ id: vendedorId, nombre: vendedorNombre });
+    setMotivoReporte("");
+    setModalReporteAbierto(true);
+  };
+
+  const enviarReporte = async () => {
+    if (!vendedorReportado) return;
+    
+    if (!motivoReporte.trim()) {
+      mostrarMensaje("Error", "Por favor, describe el motivo del reporte", "error");
+      return;
+    }
+    
+    if (motivoReporte.length < 10) {
+      mostrarMensaje("Error", "El motivo debe tener al menos 10 caracteres", "error");
+      return;
+    }
+    
+    setEnviandoReporte(true);
+    
+    try {
+      await crearReporteVendedor({
+        vendedor_id: vendedorReportado.id,
+        motivo: motivoReporte
+      });
+      
+      mostrarMensaje(
+        "Reporte enviado", 
+        "Tu reporte ha sido enviado al administrador. Gracias por ayudarnos a mantener la comunidad segura.",
+        "success"
+      );
+      setModalReporteAbierto(false);
+      setMotivoReporte("");
+      setVendedorReportado(null);
+      
+    } catch (error: any) {
+      console.error("Error al enviar reporte:", error);
+      let mensajeError = "No se pudo enviar el reporte";
+      
+      if (error.response?.data) {
+        const data = error.response.data;
+        if (Array.isArray(data) && data.length > 0 && data[0].msg) {
+          mensajeError = data.map((err: any) => err.msg).join(", ");
+        } else if (data.detail) {
+          mensajeError = data.detail;
+        }
+      }
+      
+      mostrarMensaje("Error", mensajeError, "error");
+    } finally {
+      setEnviandoReporte(false);
     }
   };
 
@@ -402,10 +465,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   return (
     <div className="comprador-dashboard">
       
-      {/* ======================================================================
-           HERO SECTION
-           Mensaje de bienvenida y logo
-      ====================================================================== */}
+      {/* HERO SECTION */}
       <div className="hero-section">
         <div className="hero-content">
           <div className="hero-text">
@@ -427,9 +487,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         </div>
       </div>
 
-      {/* ======================================================================
-           NOTIFICACIONES Y SOLICITUD DE VENDEDOR
-      ====================================================================== */}
+      {/* NOTIFICACIONES Y SOLICITUD DE VENDEDOR */}
       <div className="top-actions">
         <div className="notificaciones-container">
           <button 
@@ -477,16 +535,10 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
           )}
         </div>
 
-        {/* Boton para solicitar ser vendedor */}
         <button 
           className="btn-solicitar-vendedor"
           onClick={abrirModalSolicitudVendedor}
           disabled={user.relacion?.rol === "vendedor" || miSolicitudVendedor?.estado === "pendiente"}
-          title={
-            user.relacion?.rol === "vendedor" ? "Ya eres vendedor" :
-            miSolicitudVendedor?.estado === "pendiente" ? "Ya tienes una solicitud pendiente" :
-            "Solicitar ser vendedor"
-          }
         >
           {user.relacion?.rol === "vendedor" ? "Eres vendedor" : 
            miSolicitudVendedor?.estado === "pendiente" ? "Solicitud enviada" : 
@@ -494,9 +546,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         </button>
       </div>
 
-      {/* ======================================================================
-           MIS SOLICITUDES
-      ====================================================================== */}
+      {/* MIS SOLICITUDES */}
       <div className="solicitudes-section">
         <h2 className="section-title">Mis Solicitudes</h2>
         {solicitudesEnviadas.length === 0 ? (
@@ -535,9 +585,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         )}
       </div>
 
-      {/* ======================================================================
-           CATEGORIAS
-      ====================================================================== */}
+      {/* CATEGORIAS */}
       {productos.length > 0 && (
         <div className="categorias-section">
           <h2 className="section-title">Categorias</h2>
@@ -555,9 +603,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         </div>
       )}
 
-      {/* ======================================================================
-           PRODUCTOS
-      ====================================================================== */}
+      {/* PRODUCTOS */}
       <div className="productos-section">
         <h2 className="section-title">
           {busquedaLocal 
@@ -639,6 +685,15 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
                     >
                       {solicitando === producto.id ? "Enviando..." : "Solicitar producto"}
                     </button>
+                    
+                    <button 
+                      className="btn-reportar"
+                      onClick={() => abrirModalReporte(producto.vendedor_id, getVendedorNombre(producto))}
+                      title="Reportar vendedor"
+                    >
+                      Reportar
+                    </button>
+                    
                     {mensajeExito[producto.id] && (
                       <span className={`mensaje-tooltip ${mensajeExito[producto.id].includes("Error") ? "error" : "exito"}`}>
                         {mensajeExito[producto.id]}
@@ -652,9 +707,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         )}
       </div>
 
-      {/* ======================================================================
-           MODAL DE SOLICITUD DE PRODUCTO
-      ====================================================================== */}
+      {/* MODAL DE SOLICITUD DE PRODUCTO */}
       {modalAbierto && productoSeleccionado && (
         <div className="modal-overlay" onClick={cerrarModal}>
           <div className="modal-solicitud" onClick={(e) => e.stopPropagation()}>
@@ -696,9 +749,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         </div>
       )}
 
-      {/* ======================================================================
-           MODAL DE CONFIRMACION DE ENTREGA
-      ====================================================================== */}
+      {/* MODAL DE CONFIRMACION DE ENTREGA */}
       {modalEntregaAbierto && solicitudEntregando && (
         <div className="modal-overlay" onClick={() => setModalEntregaAbierto(false)}>
           <div className="modal-calificacion" onClick={(e) => e.stopPropagation()}>
@@ -718,9 +769,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         </div>
       )}
 
-      {/* ======================================================================
-           MODAL DE SOLICITUD PARA SER VENDEDOR
-      ====================================================================== */}
+      {/* MODAL DE SOLICITUD PARA SER VENDEDOR */}
       {modalSolicitudVendedorAbierto && (
         <div className="modal-overlay" onClick={() => setModalSolicitudVendedorAbierto(false)}>
           <div className="modal-solicitud-vendedor" onClick={(e) => e.stopPropagation()}>
@@ -757,9 +806,48 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         </div>
       )}
 
-      {/* ======================================================================
-           MODAL DE MENSAJES (reemplaza alert)
-      ====================================================================== */}
+      {/* MODAL DE REPORTE DE VENDEDOR */}
+      {modalReporteAbierto && vendedorReportado && (
+        <div className="modal-overlay" onClick={() => setModalReporteAbierto(false)}>
+          <div className="modal-reporte" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-reporte-header">
+              <h3>Reportar vendedor</h3>
+              <button className="modal-close" onClick={() => setModalReporteAbierto(false)}>×</button>
+            </div>
+            <div className="modal-reporte-body">
+              <p>Estás reportando a: <strong>{vendedorReportado.nombre}</strong></p>
+              <p>Por favor, describe el motivo del reporte:</p>
+              <textarea 
+                value={motivoReporte}
+                onChange={(e) => setMotivoReporte(e.target.value)}
+                placeholder="Ej: Producto en mal estado, no entregó el producto, comportamiento inapropiado, etc."
+                rows={5}
+                className="reporte-input"
+              />
+              <small className="reporte-nota">
+                * Tu reporte será revisado por un administrador.
+              </small>
+            </div>
+            <div className="modal-reporte-footer">
+              <button 
+                className="btn-cancelar-modal" 
+                onClick={() => setModalReporteAbierto(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-enviar-modal" 
+                onClick={enviarReporte}
+                disabled={enviandoReporte}
+              >
+                {enviandoReporte ? "Enviando..." : "Enviar reporte"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE MENSAJES */}
       {modalMensaje.isOpen && (
         <div className="modal-mensaje-overlay" onClick={() => setModalMensaje({ ...modalMensaje, isOpen: false })}>
           <div className="modal-mensaje-content" onClick={(e) => e.stopPropagation()}>
