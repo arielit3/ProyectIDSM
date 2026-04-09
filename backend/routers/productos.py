@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import os
 import shutil
 import uuid
+import json
 from typing import Optional
 import models
 from deps import get_db, get_current_user
@@ -135,7 +136,8 @@ def listar_todos_productos(
             "vendedor": {
                 "id": p.vendedor.id,
                 "nombre": p.vendedor.nombre,
-                "apodo": p.vendedor.apodo
+                "apodo": p.vendedor.apodo,
+                "telefono": p.vendedor.telefono
             } if p.vendedor else None
         }
         resultado.append(producto_dict)
@@ -213,7 +215,7 @@ def eliminar_producto(
         raise HTTPException(status_code=500, detail=f"Error al eliminar producto: {str(e)}")
 
 
-@router.patch("/{producto_id}/toggle")
+@router.patch("//{producto_id}/toggle")
 def toggle_producto_visibilidad(
     producto_id: int,
     db: Session = Depends(get_db),
@@ -245,7 +247,7 @@ def agregar_favorito(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Agrega un producto a favoritos del usuario actual"""
+    """Agrega un producto a favoritos del usuario actual y notifica al vendedor"""
     try:
         producto = db.query(models.Productos).filter(
             models.Productos.id == producto_id
@@ -268,6 +270,18 @@ def agregar_favorito(
         )
         
         db.add(favorito)
+        
+        # ===== NOTIFICAR AL VENDEDOR =====
+        notificacion = models.Notificacion(
+            usuario_id=producto.vendedor_id,
+            titulo="Nuevo favorito",
+            mensaje=f"{current_user.apodo or current_user.nombre} marcó tu producto '{producto.nombre}' como favorito",
+            tipo="favorito",
+            data=json.dumps({"producto_id": producto_id, "comprador_id": current_user.id})
+        )
+        db.add(notificacion)
+        # ================================
+        
         db.commit()
         
         return {"mensaje": "Producto agregado a favoritos", "producto_id": producto_id}
@@ -309,7 +323,8 @@ def obtener_favoritos(
                         "vendedor": {
                             "id": f.producto.vendedor.id,
                             "nombre": f.producto.vendedor.nombre,
-                            "apodo": f.producto.vendedor.apodo
+                            "apodo": f.producto.vendedor.apodo,
+                            "telefono": f.producto.vendedor.telefono
                         } if f.producto.vendedor else None
                     }
                 })

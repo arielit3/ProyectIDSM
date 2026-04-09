@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Float, Integer, String, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, Float, Integer, String, ForeignKey, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -16,7 +16,6 @@ class UsuarioRelacion(Base):
     usuario = relationship("Usuario", back_populates="relacion", uselist=False)
 
 
-# Cada clase representa una tabla en PostgreSQL
 class Usuario(Base):
     __tablename__ = "usuarios"
 
@@ -26,18 +25,28 @@ class Usuario(Base):
     correo = Column(String, unique=True, index=True, nullable=False)
     telefono = Column(String, unique=False)
 
-    
     usuario_relacion_id = Column(Integer, ForeignKey("usuario_relacion.id"), unique=True, nullable=False)
 
     relacion = relationship("UsuarioRelacion", back_populates="usuario")
 
-    favoritos = relationship(
-        "Favorito",
-        back_populates="usuario",
+    favoritos = relationship("Favorito", back_populates="usuario", cascade="all, delete-orphan")
+    productos = relationship("Productos", back_populates="vendedor")
+    
+    solicitudes_enviadas = relationship(
+        "SolicitudProducto",
+        foreign_keys="SolicitudProducto.comprador_id",
+        back_populates="comprador",
         cascade="all, delete-orphan"
     )
-
-    productos = relationship("Productos", back_populates="vendedor")
+    
+    solicitudes_recibidas = relationship(
+        "SolicitudProducto",
+        foreign_keys="SolicitudProducto.vendedor_id",
+        back_populates="vendedor",
+        cascade="all, delete-orphan"
+    )
+    
+    notificaciones = relationship("Notificacion", back_populates="usuario", cascade="all, delete-orphan")
 
 
 class Productos(Base):
@@ -52,21 +61,15 @@ class Productos(Base):
     stock = Column(Integer, nullable=False, default=0)
     categoria = Column(String, nullable=False)
     imagen_nombre = Column(String, nullable=True)
-    activo = Column(Integer, nullable=False, default=1)  # 1 = visible, 0 = oculto
+    activo = Column(Integer, nullable=False, default=1)
+
+    favoritos = relationship("Favorito", back_populates="producto", cascade="all, delete-orphan")
+    solicitudes = relationship("SolicitudProducto", back_populates="producto", cascade="all, delete-orphan")
 
 
-    favoritos = relationship(
-        "Favorito",
-        back_populates="producto",
-        cascade="all, delete-orphan"
-    )
-
-
-# Tabla intermedia para favoritos (evita duplicados con PK compuesta)
 class Favorito(Base):
     __tablename__ = "favorito"
 
-    # PK compuesta: un usuario no puede repetir el mismo producto como favorito
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), primary_key=True)
     producto_id = Column(Integer, ForeignKey("productos.id"), primary_key=True)
 
@@ -74,32 +77,55 @@ class Favorito(Base):
     producto = relationship("Productos", back_populates="favoritos")
 
 
-# Tabla para almacenar codigos OTP temporales de verificacion de correo
 class VerificacionOTP(Base):
     __tablename__ = "verificacion_otp"
 
     id = Column(Integer, primary_key=True, index=True)
-    
-    # Email para el cual se genero el OTP
     email = Column(String, index=True, nullable=False)
-    
-    # Codigo de 6 digitos
     codigo = Column(String(6), nullable=False)
-    
-    # Fecha y hora en que se creo el OTP
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    
-    # Fecha y hora en que expira el OTP (5 minutos despues de created_at)
     expires_at = Column(DateTime, nullable=False)
-    
-    # Contador de intentos restantes antes de bloquear (inicial: 4)
-    # Cuando llega a 0, la cuenta se bloquea
-    # Por cada intento fallido, se resta 1 punto
     intentos_restantes = Column(Integer, default=4, nullable=False)
-    
-    # Estado del OTP: 'vigente', 'usado', 'bloqueado', 'expirado'
-    # vigente: puede ser utilizado
-    # usado: ya fue verificado correctamente
-    # bloqueado: usuario excedio intentos fallidos
-    # expirado: paso el tiempo de validez
     estado = Column(String, default='vigente', nullable=False)
+
+
+# ============================================================================
+# SOLICITUDES
+# ============================================================================
+
+class SolicitudProducto(Base):
+    __tablename__ = "solicitudes_producto"
+
+    id = Column(Integer, primary_key=True, index=True)
+    producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False)
+    comprador_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    vendedor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    cantidad = Column(Integer, nullable=False, default=1)
+    mensaje = Column(Text, nullable=True)
+    estado = Column(String, default="pendiente", nullable=False)
+    fecha_solicitud = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_respuesta = Column(DateTime, nullable=True)
+    fecha_entrega = Column(DateTime, nullable=True)
+    
+    producto = relationship("Productos", back_populates="solicitudes")
+    comprador = relationship("Usuario", foreign_keys=[comprador_id], back_populates="solicitudes_enviadas")
+    vendedor = relationship("Usuario", foreign_keys=[vendedor_id], back_populates="solicitudes_recibidas")
+
+
+# ============================================================================
+# NOTIFICACIONES
+# ============================================================================
+
+class Notificacion(Base):
+    __tablename__ = "notificaciones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    titulo = Column(String, nullable=False)
+    mensaje = Column(Text, nullable=False)
+    tipo = Column(String, nullable=False)  # favorito, solicitud, respuesta_aceptada, respuesta_rechazada, entrega_confirmada
+    leida = Column(Boolean, default=False, nullable=False)
+    data = Column(Text, nullable=True)
+    fecha_creacion = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    usuario = relationship("Usuario", back_populates="notificaciones")
