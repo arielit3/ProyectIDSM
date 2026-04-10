@@ -23,71 +23,61 @@ import { type Usuario } from "../services/users";
 import { IconoCampanaConPunto, IconoCampana, IconoCheck, IconoX } from "../components/Iconos";
 import "./Dashboard.css";
 
+//URL base de la API, se carga desde el .env
 const API_URL = import.meta.env.VITE_API_URL;
 
-// ============================================================================
 // INTERFAZ DE PROPS
-// ============================================================================
-
 interface CompradorDashboardProps {
-  user: Usuario;
-  terminoBusqueda?: string;
+  user: Usuario; //Datos del usuario cliente autenticado
+  terminoBusqueda?: string; //Termino de busqueda que se recibe desde el navbar para hacer el filtrado
 }
 
-// ============================================================================
 // COMPONENTE PRINCIPAL
-// ============================================================================
-
 const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBusqueda = "" }) => {
   
-  // ==========================================================================
   // ESTADOS DE PRODUCTOS Y BUSQUEDA
-  // ==========================================================================
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [favoritos, setFavoritos] = useState<Set<number>>(new Set());
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("todos");
-  const [categorias, setCategorias] = useState<string[]>(["todos"]);
-  const [busquedaLocal, setBusquedaLocal] = useState<string>(terminoBusqueda);
-  const [solicitando, setSolicitando] = useState<number | null>(null);
-  const [mensajeExito, setMensajeExito] = useState<{ [key: number]: string }>({});
+  const [productos, setProductos] = useState<Producto[]>([]); //Lista de productos disponibles
+  const [cargando, setCargando] = useState(true); //Indica si los productos están cargando
+  const [favoritos, setFavoritos] = useState<Set<number>>(new Set()); //IDS de productos favoritos del usuario
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("todos"); //Categoría seleccioada para filtrar productos con "todos se muestran todas las categorías"
+  const [categorias, setCategorias] = useState<string[]>(["todos"]); //Lista de categorías disponibles para el filtro, se carga dinámicamente de los productos
+  const [busquedaLocal, setBusquedaLocal] = useState<string>(terminoBusqueda); //Termino de busqueda local
+  const [solicitando, setSolicitando] = useState<number | null>(null); //ID del producto que está siendo solicitado para mostrar un indicador de carga en el botón de solicitud
+  const [mensajeExito, setMensajeExito] = useState<{ [key: number]: string }>({}); //Mensaje temporal de éxito que aparece em ña tarjeta del producto
   
-  // ==========================================================================
   // ESTADOS DE NOTIFICACIONES Y SOLICITUDES
-  // ==========================================================================
-  const [showNotificaciones, setShowNotificaciones] = useState(false);
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
-  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0);
-  const [solicitudesEnviadas, setSolicitudesEnviadas] = useState<SolicitudProducto[]>([]);
-  const [miSolicitudVendedor, setMiSolicitudVendedor] = useState<SolicitudVendedor | null>(null);
+  const [showNotificaciones, setShowNotificaciones] = useState(false); //Controla si el dropdown de notificaciones está visible
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]); //Lista de notificaciones de usuario
+  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0); //Cantidad de notificaciones no leídas para mostrar en la campana
+  const [solicitudesEnviadas, setSolicitudesEnviadas] = useState<SolicitudProducto[]>([]); //Lista de solicitudes de producto enviadas por el cliente
+  const [miSolicitudVendedor, setMiSolicitudVendedor] = useState<SolicitudVendedor | null>(null); //Estdo de la solicitud del cliente para convertirse en vendedor
   
-  // ==========================================================================
   // ESTADOS DE MODALES
-  // ==========================================================================
+  //Modal para solicitar un producto
   const [modalAbierto, setModalAbierto] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
   const [cantidadSolicitud, setCantidadSolicitud] = useState(1);
   const [mensajeSolicitud, setMensajeSolicitud] = useState("");
   
+  //Modal para confirmar entrega de producto
   const [modalEntregaAbierto, setModalEntregaAbierto] = useState(false);
   const [solicitudEntregando, setSolicitudEntregando] = useState<SolicitudProducto | null>(null);
   
+  //Modal para solicitar ser vendedor
   const [modalSolicitudVendedorAbierto, setModalSolicitudVendedorAbierto] = useState(false);
   const [motivoSolicitudVendedor, setMotivoSolicitudVendedor] = useState("");
   const [enviandoSolicitudVendedor, setEnviandoSolicitudVendedor] = useState(false);
   
-  // Estados para reportes
+  // Modal para reportar vendedor
   const [modalReporteAbierto, setModalReporteAbierto] = useState(false);
   const [vendedorReportado, setVendedorReportado] = useState<{ id: number; nombre: string } | null>(null);
   const [motivoReporte, setMotivoReporte] = useState("");
   const [enviandoReporte, setEnviandoReporte] = useState(false);
 
   //Estados interfaz 
-  const [solicitudesDesplegado, setSolicitudesDesplegado] = useState(true);
+  const [solicitudesDesplegado, setSolicitudesDesplegado] = useState(true); //Controla si la sección  de mis solicitudes esta desplegada 
   
-  // ==========================================================================
-  // ESTADO PARA MODAL DE MENSAJES (reemplaza alert)
-  // ==========================================================================
+  // ESTADO PARA MODAL DE MENSAJES
   const [modalMensaje, setModalMensaje] = useState<{
     isOpen: boolean;
     titulo: string;
@@ -100,30 +90,25 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     tipo: "info"
   });
 
-  // ==========================================================================
-  // FUNCION PARA MOSTRAR MENSAJES (reemplaza alert)
-  // ==========================================================================
+  // Función para mostrar mensajes en un modal
   const mostrarMensaje = (titulo: string, mensaje: string, tipo: "info" | "success" | "error" | "warning" = "info") => {
     setModalMensaje({ isOpen: true, titulo, mensaje, tipo });
   };
 
-  // ==========================================================================
   // EFECTOS INICIALES
-  // ==========================================================================
-
+  //Sincroniza el termino de busqueda local con el que se recibe desde el navbar para que el filtro se aplique correctamente
   useEffect(() => {
     setBusquedaLocal(terminoBusqueda);
   }, [terminoBusqueda]);
 
-  // ==========================================================================
   // FUNCIONES DE CARGA DE DATOS
-  // ==========================================================================
-
+  //Cargar productos, favoritos, notificaciones y solicitudes del cliente
+  // al cargar el componente para mostrar la información actualizada en el dashboard
   const cargarProductos = async () => {
     try {
       setCargando(true);
-      const data = await listarTodosProductos();
-      setProductos(data);
+      const data = await listarTodosProductos(); //Llamada a la API
+      setProductos(data); //Extrae categorias unicas de los productos para el filtro
       const categoriasUnicas = ["todos", ...new Set(data.map(p => p.categoria).filter(Boolean))];
       setCategorias(categoriasUnicas);
     } catch (error) {
@@ -134,27 +119,32 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     }
   };
 
+  //Cragar los IDs de los productos favoritos del cliente para mostrar el estado de favorito en las tarjetas
+  // de producto y permitir gestionar favoritos
   const cargarFavoritos = async () => {
     try {
-      const favoritosData = await obtenerFavoritos();
-      const favoritosSet = new Set(favoritosData.map((f: any) => f.producto_id));
-      setFavoritos(favoritosSet);
+      const favoritosData = await obtenerFavoritos(); //Llamada a la API
+      const favoritosSet = new Set(favoritosData.map((f: any) => f.producto_id)); //Extrae solo los IDs de los productos favoritos y los guarda en un Set para acceso rápido
+      setFavoritos(favoritosSet); //Actualiza el estado con los IDs de productos favoritos
     } catch (error) {
       console.error("Error al cargar favoritos:", error);
     }
   };
 
+  //Cargar las notificaciones del cliente para mostrarlas en el dropdown de notificaciones y gestionar su estado de leídas o no leídas
   const cargarNotificaciones = async () => {
     try {
       const data = await obtenerNotificaciones();
       setNotificaciones(data);
       const noLeidas = data.filter(n => !n.leida).length;
-      setNotificacionesNoLeidas(noLeidas);
+      setNotificacionesNoLeidas(noLeidas); //Actualiza el contador de la campanita de notificacion
     } catch (error) {
       console.error("Error al cargar notificaciones:", error);
     }
   };
 
+  //Cargar las solicitudes de producto enviadas por el cliente para mostrarlas en la sección de 
+  // Mis Solicitudes y permitir gestionar su estado
   const cargarSolicitudesEnviadas = async () => {
     try {
       const data = await obtenerSolicitudesEnviadas();
@@ -164,6 +154,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     }
   };
 
+  //Cargar el estado de la solicitud para ser vendedor
   const cargarMiSolicitudVendedor = async () => {
     try {
       const data = await obtenerMiSolicitudVendedor();
@@ -180,15 +171,15 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     cargarNotificaciones();
     cargarSolicitudesEnviadas();
     cargarMiSolicitudVendedor();
-  }, []);
+  }, []); //El array vacío asegura que se ejecute solo una vez al montar el componente
 
-  // ==========================================================================
   // FUNCIONES DE FAVORITOS
-  // ==========================================================================
-
+  //Agrega o elimina un producto de favoritos dependiendo de su estado actual
+  //actualiza el estado local para reflejar el cambio en la interfaz y muestra un mensaje temporal de éxito
   const handleFavorito = async (productoId: number) => {
     try {
       if (favoritos.has(productoId)) {
+        //si ya esta en favoritos, se elimina
         await quitarFavorito(productoId);
         setFavoritos(prev => {
           const nuevo = new Set(prev);
@@ -197,10 +188,12 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         });
         setMensajeExito(prev => ({ ...prev, [productoId]: "Eliminado de favoritos" }));
       } else {
+        //sino esta en favoritos se agrega
         await agregarFavorito(productoId);
         setFavoritos(prev => new Set(prev).add(productoId));
         setMensajeExito(prev => ({ ...prev, [productoId]: "Agregado a favoritos" }));
       }
+      //El mensaje desaparece después de 2 segundos
       setTimeout(() => {
         setMensajeExito(prev => {
           const nuevo = { ...prev };
@@ -221,36 +214,36 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     }
   };
 
-  // ==========================================================================
   // FUNCIONES DE NOTIFICACIONES
-  // ==========================================================================
-
+ //Marca una notificación como leída al hacer clic en ella, actualiza el estado local para reflejar el cambio
+ //en la interfaz y disminuye el contador de notificaciones no leídas
   const marcarNotificacionLeidaHandler = async (notificacionId: number) => {
     try {
       await marcarNotificacionLeida(notificacionId);
       setNotificaciones(prev => prev.map(n => 
         n.id === notificacionId ? { ...n, leida: true } : n
       ));
-      setNotificacionesNoLeidas(prev => prev - 1);
+      setNotificacionesNoLeidas(prev => prev - 1); //Decrementa el contador de notificaciones no leídas
     } catch (error) {
       console.error("Error al marcar notificacion:", error);
     }
   };
 
+  //Marcar las notificaciones como leídas al hacer clic en el botón de marcar todas como leídas
+  //actualiza el estado local para reflejar el cambio en la interfaz y pone el contador de notificaciones no leídas en 0
   const marcarTodasLeidas = async () => {
     try {
       await marcarTodasNotificacionesLeidas();
       setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })));
-      setNotificacionesNoLeidas(0);
+      setNotificacionesNoLeidas(0); //Resetea el contador a 0
     } catch (error) {
       console.error("Error al marcar todas:", error);
     }
   };
 
-  // ==========================================================================
   // FUNCIONES DE SOLICITUD DE PRODUCTO
-  // ==========================================================================
-
+  //Abre el modal de solicitud de producto y establece el producto seleccionado 
+  //para mostrar su información en el modal y gestionar la solicitud correctamente
   const abrirModalSolicitud = (producto: Producto) => {
     setProductoSeleccionado(producto);
     setCantidadSolicitud(1);
@@ -258,6 +251,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     setModalAbierto(true);
   };
 
+  //Cierra el modal de solictud y se limpian los datos
   const cerrarModal = () => {
     setModalAbierto(false);
     setProductoSeleccionado(null);
@@ -265,6 +259,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     setMensajeSolicitud("");
   };
 
+  //Envía la solicitud de producto al vendedor con cifrado SHA-256
   const enviarSolicitud = async () => {
     if (!productoSeleccionado) return;
     
@@ -273,9 +268,10 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
       return;
     }
     
-    setSolicitando(productoSeleccionado.id);
+    setSolicitando(productoSeleccionado.id); //Desabilita el botón mientras se envia
     
     try {
+      //Cifrado SHA-256 del mensaje
       const mensajeCifrado = mensajeSolicitud ? prepararMensajeCifrado(mensajeSolicitud) : null;
       
       await crearSolicitudProducto({
@@ -295,8 +291,8 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
       }, 3000);
       
       cerrarModal();
-      cargarSolicitudesEnviadas();
-      cargarNotificaciones();
+      cargarSolicitudesEnviadas(); //Recarga la lista de solicitudes 
+      cargarNotificaciones(); //Recarga de notificaciones
       
     } catch (error: any) {
       console.error("Error al enviar solicitud:", error);
@@ -306,36 +302,36 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     }
   };
 
-  // ==========================================================================
   // FUNCIONES DE ENTREGA DE PRODUCTO
-  // ==========================================================================
-
+  //Marcar una solicitud como entregada, actualiza el estado de la solicitud y muestra un mensaje de éxito
   const handleMarcarEntregado = async (solicitudId: number) => {
     try {
       await marcarSolicitudComoEntregada(solicitudId);
       mostrarMensaje("Exito", "Producto marcado como entregado", "success");
-      cargarSolicitudesEnviadas();
-      cargarNotificaciones();
+      cargarSolicitudesEnviadas(); //Recarga la lista
+      cargarNotificaciones(); //Recarga notificaciones
       setModalEntregaAbierto(false);
     } catch (error: any) {
       mostrarMensaje("Error", error.response?.data?.detail || "Error al marcar como entregado", "error");
     }
   };
 
+  //Abre el modal para confirmar la entrega
   const abrirModalEntrega = (solicitud: SolicitudProducto) => {
     setSolicitudEntregando(solicitud);
     setModalEntregaAbierto(true);
   };
 
-  // ==========================================================================
   // FUNCIONES DE SOLICITUD PARA SER VENDEDOR
-  // ==========================================================================
-
+  //Abre el modal para solicitar ser vendedor, verifica si ya existe una solicitud pendiente 
+  // o si el cliente ya es vendedor para mostrar un mensaje informativo
   const abrirModalSolicitudVendedor = () => {
+    //Verifica si hay una solicitud pendiente 
     if (miSolicitudVendedor?.estado === "pendiente") {
       mostrarMensaje("Info", "Ya tienes una solicitud pendiente. Espera la respuesta del administrador.", "info");
       return;
     }
+    //Verifica si el cliente ya es vendedor
     if (user.relacion?.rol === "vendedor") {
       mostrarMensaje("Info", "Ya eres vendedor", "info");
       return;
@@ -344,6 +340,8 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     setModalSolicitudVendedorAbierto(true);
   };
 
+  //Envía la solicitud para ser vendedor con cifrado SHA-256, muestra un mensaje de éxito y recarga
+  // el estado de la solicitud para reflejar el cambio en la interfaz
   const enviarSolicitudVendedor = async () => {
     if (!motivoSolicitudVendedor.trim()) {
       mostrarMensaje("Error", "Por favor, escribe un motivo para tu solicitud", "error");
@@ -353,6 +351,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     setEnviandoSolicitudVendedor(true);
     
     try {
+      //cifrado del Sha-256 del motivo
       const motivoCifrado = prepararMensajeCifrado(motivoSolicitudVendedor);
       
       await crearSolicitudVendedor({ 
@@ -361,8 +360,8 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
       
       mostrarMensaje("Exito", "Solicitud enviada correctamente. Recibirás una notificacion cuando sea procesada.", "success");
       setModalSolicitudVendedorAbierto(false);
-      cargarMiSolicitudVendedor();
-      cargarNotificaciones();
+      cargarMiSolicitudVendedor(); //Actualiza el estado de la solicitud
+      cargarNotificaciones(); //Recarga de notificaciones
     } catch (error: any) {
       mostrarMensaje("Error", error.response?.data?.detail || "Error al enviar solicitud", "error");
     } finally {
@@ -370,16 +369,17 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     }
   };
 
-  // ==========================================================================
   // FUNCIONES DE REPORTE DE VENDEDOR
-  // ==========================================================================
-
+  //Abre el modal para reportar un vendedor, se establece el vendedor 
+  //reportado para mostrar su información en el modal y gestionar el reporte correctamente
   const abrirModalReporte = (vendedorId: number, vendedorNombre: string) => {
     setVendedorReportado({ id: vendedorId, nombre: vendedorNombre });
     setMotivoReporte("");
     setModalReporteAbierto(true);
   };
 
+    //Envía el reporte contra un vendedor al administrador con cifrado SHA-256 
+    //muestra un mensaje de éxito y cierra el modal
   const enviarReporte = async () => {
     if (!vendedorReportado) return;
     
@@ -387,7 +387,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
       mostrarMensaje("Error", "Por favor, describe el motivo del reporte", "error");
       return;
     }
-    
+    //El motivo debe tener al menos 10 caracteres para que el reporte sea válido
     if (motivoReporte.length < 10) {
       mostrarMensaje("Error", "El motivo debe tener al menos 10 caracteres", "error");
       return;
@@ -413,7 +413,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     } catch (error: any) {
       console.error("Error al enviar reporte:", error);
       let mensajeError = "No se pudo enviar el reporte";
-      
+      //Manejo de errores detallado para mostrar mensajes específicos dependiendo de la respuesta del backend
       if (error.response?.data) {
         const data = error.response.data;
         if (Array.isArray(data) && data.length > 0 && data[0].msg) {
@@ -429,27 +429,29 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     }
   };
 
-  // ==========================================================================
   // FUNCIONES AUXILIARES
-  // ==========================================================================
-
+  //Construye la URL completa para acceder a una imagen guardada
   const getImagenUrl = (imagenNombre: string | null): string | null => {
     if (!imagenNombre) return null;
     return `${API_URL}/uploads/productos/${imagenNombre}`;
   };
 
+  //Obtiene el nombre del vendedor de un producto, se utiliza para mostrarlo en
+  // las tarjetas de producto y para el filtro de búsqueda
   const getVendedorNombre = (producto: Producto): string => {
     if (producto.vendedor) {
       return producto.vendedor.apodo || producto.vendedor.nombre;
     }
-    return "Vendedor";
+    return "Vendedor"; 
   };
 
   // Filtrar productos
   const productosFiltrados = productos.filter(producto => {
+    //Filtro por categoria
     if (categoriaSeleccionada !== "todos" && producto.categoria !== categoriaSeleccionada) {
       return false;
     }
+    //Filtro por busqueda, se busca en el nombre del producto y en el nombre del vendedor para mayor usabilidad
     if (busquedaLocal.trim() !== "") {
       const busqueda = busquedaLocal.toLowerCase().trim();
       const coincideNombre = producto.nombre.toLowerCase().includes(busqueda);
@@ -458,17 +460,15 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     }
     return true;
   });
-
+  //Nombre para mostrar del usuario, se utiliza el apodo si existe o el nombre real 
+  //si no hay apodo, esto para una experiencia más personalizada en el dashboard
   const displayName = user.apodo || user.nombre;
 
-  // ==========================================================================
   // RENDERIZADO DEL COMPONENTE
-  // ==========================================================================
-
   return (
     <div className="comprador-dashboard">
       
-      {/* HERO SECTION */}
+      {/* HERO SECTION muestra mensaje de bienvenida y logo de aplicacion*/}
       <div className="hero-section">
         <div className="hero-content">
           <div className="hero-text">
@@ -490,7 +490,10 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         </div>
       </div>
 
-      {/* NOTIFICACIONES Y SOLICITUD DE VENDEDOR */}
+      {/* NOTIFICACIONES Y SOLICITUD DE VENDEDOR
+      la campana muestra el dropdown de notificaciones
+      se indican las notificaciones no leidas
+      el boton permite al comprador solicitar ser vendedor */}
       <div className="top-actions">
   <div className="notificaciones-container">
     <button 
@@ -549,7 +552,9 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         </button>
       </div>
 
-      {/* MIS SOLICITUDES */}
+      {/* MIS SOLICITUDES 
+      muestra las solicitudes de productos enviadas por el comprador
+      se puede colapsar haciendo clic en el encabezado*/}
       <div className="solicitudes-section">
   <div 
     className="section-header clickable" 
@@ -601,7 +606,8 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   )}
 </div>
 
-      {/* CATEGORIAS */}
+      {/* CATEGORIAS 
+      solo es visible si hay al menos un producto */}
       {productos.length > 0 && (
         <div className="categorias-section">
           <h2 className="section-title">Categorias</h2>
@@ -619,7 +625,8 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
         </div>
       )}
 
-      {/* PRODUCTOS */}
+      {/* PRODUCTOS
+      cada tarjeta muestra información de un producto disponible */}
       <div className="productos-section">
         <h2 className="section-title">
           {busquedaLocal 

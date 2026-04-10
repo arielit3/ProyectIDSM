@@ -3,13 +3,18 @@ import { useNavigate } from "react-router-dom";
 import "./pages.css";
 import { login } from "../services/auth";
 
+//COMPONENTE DE LOGIN
+//permite a los usuarios ingresar sus credenciales para autenticarse y acceder a su dashboard correspondiente
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [mensaje, setMensaje] = React.useState("");
+  //ESTADOS DEL COMPONENTE
+  const [email, setEmail] = React.useState(""); //correo electrónico ingresado por el usuario
+  const [password, setPassword] = React.useState("");//contraseña ingresada por el usuario
+  const [mensaje, setMensaje] = React.useState(""); //mensaje de error o éxito para mostrar al usuario después de intentar iniciar sesión
   const [mensajeColor, setMensajeColor] = React.useState("red");
+
+  //FUNCIONE DE ENVIO
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

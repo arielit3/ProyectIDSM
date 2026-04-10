@@ -20,65 +20,64 @@ import { type Usuario } from "../services/users";
 import { IconoCampanaConPunto, IconoCampana, IconoCheck, IconoX } from "../components/Iconos";
 import "./Dashboard.css";
 
+// CONSTANTES
+// URL base de la API (se carga desde el archivo .env)
 const API_URL = import.meta.env.VITE_API_URL;
 
+// Lista de categorías predefinidas para los productos
 const CATEGORIAS_PRODUCTOS = [
-  "Postres", "Snacks", "Bebidas", "Lonches", "Comida Corrida", "Saludable", "Desayunos", "Otros"
+  "Postres", "Snacks", "Bebidas", "Lonches", 
+  "Comida Corrida", "Saludable", "Desayunos", "Otros"
 ];
 
+// INTERFAZ DE PROPS
 interface VendedorDashboardProps {
-  user: Usuario;
+  user: Usuario;  // Datos del vendedor autenticado
 }
 
+// COMPONENTE PRINCIPAL
 const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
-  
-  // ==========================================================================
+
   // ESTADOS DE LA INTERFAZ
-  // ==========================================================================
-  const [showNewProductForm, setShowNewProductForm] = useState(false);
-  const [showGestionProductos, setShowGestionProductos] = useState(false);
-  const [showVentas, setShowVentas] = useState(false);
-  const [showNotificaciones, setShowNotificaciones] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [refrescando, setRefrescando] = useState(false);
+  const [showNewProductForm, setShowNewProductForm] = useState(false);     // Muestra formulario de nuevo producto
+  const [showGestionProductos, setShowGestionProductos] = useState(false); // Muestra panel de gestión de productos
+  const [showVentas, setShowVentas] = useState(false);                     // Muestra panel de ventas
+  const [showNotificaciones, setShowNotificaciones] = useState(false);     // Muestra dropdown de notificaciones
+  const [isLoading, setIsLoading] = useState(false);                       // Indica si se está procesando una petición
+  const [error, setError] = useState("");                                  // Mensaje de error
+  const [success, setSuccess] = useState("");                              // Mensaje de éxito
+  const [refrescando, setRefrescando] = useState(false);                   // Estado para el botón de refrescar
 
-  // ==========================================================================
   // ESTADOS DE DATOS
-  // ==========================================================================
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [cargandoProductos, setCargandoProductos] = useState(true);
-  const [imagenPreview, setImagenPreview] = useState<string | null>(null);
-  const [imagenFile, setImagenFile] = useState<File | null>(null);
-  const [productoEditando, setProductoEditando] = useState<Producto | null>(null);
-  const [solicitudes, setSolicitudes] = useState<SolicitudProducto[]>([]);
-  const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);
-  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false);
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
-  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0);
-  const [ventas, setVentas] = useState<Venta[]>([]);
-  const [cargandoVentas, setCargandoVentas] = useState(false);
+  const [productos, setProductos] = useState<Producto[]>([]);              // Lista de productos del vendedor
+  const [cargandoProductos, setCargandoProductos] = useState(true);        // Carga de productos
+  const [imagenPreview, setImagenPreview] = useState<string | null>(null); // Vista previa de la imagen
+  const [imagenFile, setImagenFile] = useState<File | null>(null);         // Archivo de imagen seleccionado
+  const [productoEditando, setProductoEditando] = useState<Producto | null>(null); // Producto en edición
+  const [solicitudes, setSolicitudes] = useState<SolicitudProducto[]>([]); // Solicitudes recibidas
+  const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);   // Contador de solicitudes pendientes
+  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false);   // Carga de solicitudes
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]); // Lista de notificaciones
+  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0); // Contador de notificaciones no leídas
+  const [ventas, setVentas] = useState<Venta[]>([]);                        // Lista de ventas realizadas
+  const [cargandoVentas, setCargandoVentas] = useState(false);             // Carga de ventas
 
-  // ==========================================================================
   // ESTADO DEL FORMULARIO
-  // ==========================================================================
   const [formData, setFormData] = useState({
-    nombre: "",
-    descripcion: "",
-    precio: "",
-    stock: "",
-    categoria: CATEGORIAS_PRODUCTOS[0],
+    nombre: "",      // Nombre del producto
+    descripcion: "", // Descripción del producto
+    precio: "",      // Precio (string para el input)
+    stock: "",       // Stock disponible
+    categoria: CATEGORIAS_PRODUCTOS[0], // Categoría seleccionada
   });
 
-  // ==========================================================================
   // FUNCIONES DE CARGA DE DATOS
-  // ==========================================================================
-
+  //Carga todos los productos del vendedor desde el backend
   const cargarProductos = useCallback(async () => {
     try {
       setCargandoProductos(true);
       const data = await listarMisProductos();
+      // Normaliza el stock para asegurar que sea número
       const productosNormalizados = data.map(p => ({
         ...p,
         stock: typeof p.stock === 'string' ? parseInt(p.stock) : p.stock
@@ -92,6 +91,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   }, []);
 
+  //Carga las solicitudes de productos recibidas por el vendedor
   const cargarSolicitudes = useCallback(async () => {
     if (!user?.id) return;
     try {
@@ -107,6 +107,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   }, [user?.id]);
 
+  //Carga las notificaciones del vendedor
   const cargarNotificaciones = useCallback(async () => {
     if (!user?.id) return;
     try {
@@ -119,6 +120,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   }, [user?.id]);
 
+  //Carga las ventas realizadas por el vendedor
   const cargarVentas = useCallback(async () => {
     if (!user?.id) return;
     try {
@@ -132,6 +134,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   }, [user?.id]);
 
+  //Refresca todos los datos productos, solicitudes, notificaciones y ventas
   const handleRefrescar = useCallback(async () => {
     setRefrescando(true);
     await Promise.all([cargarProductos(), cargarSolicitudes(), cargarNotificaciones(), cargarVentas()]);
@@ -142,9 +145,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }, 500);
   }, [cargarProductos, cargarSolicitudes, cargarNotificaciones, cargarVentas]);
 
-  // ==========================================================================
+
   // EFECTOS INICIALES
-  // ==========================================================================
   useEffect(() => {
     if (user?.id) {
       cargarProductos();
@@ -154,16 +156,16 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   }, [user?.id, cargarProductos, cargarSolicitudes, cargarNotificaciones, cargarVentas]);
 
-  // ==========================================================================
   // FUNCIONES DE MANEJO DE FORMULARIOS
-  // ==========================================================================
-
+  //Maneja los cambios en los inputs del formulario
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError("");
   };
 
+  // Maneja la selección de una imagen para el producto
+  //crea una vista previa usando FileReader
   const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -176,11 +178,13 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
+  //Construye la URL para acceder a una imagen guardada
   const getImagenUrl = (imagenNombre: string | null): string | null => {
     if (!imagenNombre) return null;
     return `${API_URL}/uploads/productos/${imagenNombre}`;
   };
 
+  //Resetea el formulario a sus valores iniciales
   const resetForm = () => {
     setFormData({
       nombre: "",
@@ -194,13 +198,13 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     setProductoEditando(null);
   };
 
-  // ==========================================================================
-  // CREACION DE PRODUCTOS
-  // ==========================================================================
-
+  // CREACIÓN DE PRODUCTOS
+  // Envía el formulario para crear un nuevo producto
+  //Incluye validaciones y envío de imagen con formdata
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validaciones de campos obligatorios
     if (!formData.nombre.trim()) {
       setError("El nombre del producto es requerido");
       return;
@@ -208,23 +212,23 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     
     const precio = parseFloat(formData.precio);
     if (isNaN(precio) || precio <= 0) {
-      setError("El precio debe ser un numero valido mayor a 0");
+      setError("El precio debe ser un número válido mayor a 0");
       return;
     }
     
     const stock = parseInt(formData.stock);
     if (isNaN(stock) || stock < 0) {
-      setError("El stock debe ser un numero valido mayor o igual a 0");
+      setError("El stock debe ser un número válido mayor o igual a 0");
       return;
     }
     
     if (!formData.descripcion.trim()) {
-      setError("La descripcion del producto es requerida");
+      setError("La descripción del producto es requerida");
       return;
     }
     
     if (!formData.categoria) {
-      setError("La categoria es requerida");
+      setError("La categoría es requerida");
       return;
     }
     
@@ -232,6 +236,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     setError("");
     
     try {
+      // Construir FormData para enviar la imagen como multipart/form-data
       const formDataToSend = new FormData();
       formDataToSend.append("nombre", formData.nombre.trim());
       formDataToSend.append("descripcion", formData.descripcion.trim());
@@ -247,7 +252,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
       
       setSuccess("Producto creado exitosamente!");
       resetForm();
-      await cargarProductos();
+      await cargarProductos();  // Recargar la lista de productos
       
       setTimeout(() => {
         setShowNewProductForm(false);
@@ -262,11 +267,14 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
-  // ==========================================================================
-  // EDICION DE PRODUCTOS
-  // ==========================================================================
+  // EDICIÓN DE PRODUCTOS
 
+  /**
+   * Prepara el formulario para editar un producto existente
+   * @param producto - Producto a editar
+   */
   const handleEditarProducto = (producto: Producto) => {
+    // Valida que la categoría exista en la lista predefinida
     const getCategoriaValida = (cat: string | undefined): string => {
       if (cat && CATEGORIAS_PRODUCTOS.includes(cat)) {
         return cat;
@@ -285,6 +293,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     setShowGestionProductos(true);
   };
 
+  //Guarda los cambios de un producto editado
   const handleGuardarEdicion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productoEditando) return;
@@ -293,12 +302,12 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     const stock = parseInt(formData.stock);
     
     if (isNaN(precio) || precio <= 0) {
-      setError("El precio debe ser un numero valido mayor a 0");
+      setError("El precio debe ser un número válido mayor a 0");
       return;
     }
     
     if (isNaN(stock) || stock < 0) {
-      setError("El stock debe ser un numero valido mayor o igual a 0");
+      setError("El stock debe ser un número válido mayor o igual a 0");
       return;
     }
     
@@ -322,10 +331,11 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
-  // ==========================================================================
-  // GESTION DE SOLICITUDES
-  // ==========================================================================
-
+  // GESTIÓN DE SOLICITUDES
+  /**
+   * Acepta una solicitud de producto de un comprador
+   * @param solicitudId - ID de la solicitud
+   */
   const handleAceptarSolicitud = async (solicitudId: number) => {
     try {
       await actualizarEstadoSolicitud(solicitudId, "aceptado");
@@ -337,6 +347,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
+  /**
+   * Rechaza una solicitud de producto de un comprador
+   * @param solicitudId - ID de la solicitud
+   */
   const handleRechazarSolicitud = async (solicitudId: number) => {
     try {
       await actualizarEstadoSolicitud(solicitudId, "rechazado");
@@ -348,10 +362,11 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
-  // ==========================================================================
-  // NOTIFICACIONES
-  // ==========================================================================
-
+  // GESTIÓN DE NOTIFICACIONES
+  /**
+   * Marca una notificación como leída
+   * @param notificacionId - ID de la notificación
+   */
   const marcarNotificacionLeidaHandler = async (notificacionId: number) => {
     try {
       await marcarNotificacionLeida(notificacionId);
@@ -364,6 +379,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
+  //Marca todas las notificaciones como leídas
   const marcarTodasLeidas = async () => {
     try {
       await marcarTodasNotificacionesLeidas();
@@ -374,10 +390,9 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
-  // ==========================================================================
-  // GESTION DE VISIBILIDAD Y ELIMINACION
-  // ==========================================================================
-
+  // GESTIÓN DE VISIBILIDAD Y ELIMINACIÓN
+  // Alterna la visibilidad de un producto, publicado o oculto
+  //los productos ocultos no son visibles para los compradores
   const handleToggleVisibilidad = async (producto: Producto) => {
     try {
       const result = await toggleProductoVisibilidad(producto.id);
@@ -389,8 +404,12 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
+  /**
+   * Elimina un producto permanentemente (solo el dueño puede hacerlo)
+   * @param producto - Producto a eliminar
+   */
   const handleEliminarProducto = async (producto: Producto) => {
-    if (confirm(`¿Estas seguro de eliminar "${producto.nombre}"?`)) {
+    if (confirm(`¿Estás seguro de eliminar "${producto.nombre}"?`)) {
       try {
         await eliminarProducto(producto.id);
         setSuccess("Producto eliminado correctamente");
@@ -402,25 +421,19 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
-  // ==========================================================================
-  // CALCULOS PARA ESTADISTICAS
-  // ==========================================================================
+  // CÁLCULOS PARA ESTADÍSTICAS
+  const totalProductos = productos.length;                              // Total de productos
+  const totalStock = productos.reduce((sum, p) => sum + (typeof p.stock === 'number' ? p.stock : 0), 0); // Stock total
+  const productosVisibles = productos.filter(p => p.activo === 1).length; // Productos visibles
+  const totalVentas = ventas.length;                                    // Total de ventas
+  const ingresosTotales = ventas.reduce((sum, v) => sum + v.total, 0);  // Ingresos totales
 
-  const totalProductos = productos.length;
-  const totalStock = productos.reduce((sum, p) => sum + (typeof p.stock === 'number' ? p.stock : 0), 0);
-  const productosVisibles = productos.filter(p => p.activo === 1).length;
-  const totalVentas = ventas.length;
-  const ingresosTotales = ventas.reduce((sum, v) => sum + v.total, 0);
-
-  // ==========================================================================
   // RENDERIZADO DEL COMPONENTE
-  // ==========================================================================
-
   return (
     <div className="vendedor-dashboard">
-      {/* ======================================================================
-           HEADER DEL VENDEDOR
-      ====================================================================== */}
+      
+      {/*HEADER DEL VENDEDOR
+        Muestra mensaje de bienvenida y estadísticas*/}
       <div className="vendedor-header">
         <div className="vendedor-welcome">
           <div className="vendedor-header-top">
@@ -429,21 +442,26 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
               <p className="vendedor-subtitle">Panel de control de ventas y productos</p>
             </div>
             
+            {/* CAMPANA DE NOTIFICACIONES
+                Muestra el dropdown con solicitudes y notificaciones*/}
             <div className="notificaciones-container">
               <button 
                 className="campana-btn"
                 onClick={() => setShowNotificaciones(!showNotificaciones)}
               >
+                {/* Ícono de campana con punto rojo si hay notificaciones no leídas */}
                 {notificacionesNoLeidas > 0 ? (
                   <IconoCampanaConPunto className="icono-campana" />
                 ) : (
                   <IconoCampana className="icono-campana" />
                 )}
+                {/* Badge con número de solicitudes pendientes */}
                 {solicitudesPendientes > 0 && (
                   <span className="campana-badge">{solicitudesPendientes}</span>
                 )}
               </button>
               
+              {/* Dropdown de notificaciones */}
               {showNotificaciones && (
                 <div className="notificaciones-dropdown">
                   <div className="notificaciones-header">
@@ -455,7 +473,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                     )}
                   </div>
                   
-                  {/* Solicitudes pendientes */}
+                  {/* Solicitudes pendientes - sección principal */}
                   <div className="solicitudes-pendientes">
                     <h5>Solicitudes pendientes ({solicitudesPendientes})</h5>
                     {solicitudes.filter(s => s.estado === "pendiente").length === 0 ? (
@@ -492,7 +510,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                     )}
                   </div>
                   
-                  {/* Otras notificaciones */}
+                  {/* Otras notificaciones (sistema, ventas, etc.) */}
                   <div className="otras-notificaciones">
                     <h5>Notificaciones</h5>
                     {notificaciones.filter(n => n.tipo !== "solicitud").length === 0 ? (
@@ -519,6 +537,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
           </div>
         </div>
         
+        {/* Tarjetas de estadísticas */}
         <div className="vendedor-stats">
           <div className="stat-card">
             <div className="stat-info">
@@ -541,10 +560,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </div>
       </div>
 
-      {/* ======================================================================
-           ACCIONES RAPIDAS
-      ====================================================================== */}
+      {/*ACCIONES RÁPIDAS
+          Botones principales del panel de vendedor*/}
       <div className="acciones-rapidas">
+        {/* Botón para crear nuevo producto */}
         <button 
           className="btn-publicar"
           onClick={() => {
@@ -558,6 +577,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         >
           {showNewProductForm ? "Cancelar" : "+ Nueva Publicación"}
         </button>
+        
+        {/* Botón para gestionar productos */}
         <button 
           className="btn-gestionar"
           onClick={() => {
@@ -571,6 +592,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         >
           Gestionar Productos
         </button>
+        
+        {/* Botón para ver ventas */}
         <button 
           className="btn-ventas"
           onClick={() => {
@@ -585,6 +608,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         >
           Ver Ventas
         </button>
+        
+        {/* Botón para refrescar todos los datos */}
         <button 
           className="btn-refrescar"
           onClick={handleRefrescar}
@@ -594,9 +619,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </button>
       </div>
 
-      {/* ======================================================================
-           FORMULARIO PARA CREAR NUEVO PRODUCTO
-      ====================================================================== */}
+      {/*FORMULARIO PARA CREAR NUEVO PRODUCTO
+        Se muestra cuando showNewProductForm es true*/}
       {showNewProductForm && (
         <div className="nuevo-producto-form">
           <h2>Crear nueva publicación</h2>
@@ -605,11 +629,13 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
           
           <form onSubmit={handleSubmit} encType="multipart/form-data">
             <div className="form-grid">
+              {/* Nombre del producto */}
               <div className="form-group">
                 <label>Nombre del producto *</label>
                 <input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} required disabled={isLoading} />
               </div>
               
+              {/* Categoría (selector) */}
               <div className="form-group">
                 <label>Categoría *</label>
                 <select 
@@ -627,21 +653,25 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                 <small className="categoria-help">Selecciona la categoría que mejor describa tu producto</small>
               </div>
               
+              {/* Precio */}
               <div className="form-group">
                 <label>Precio *</label>
                 <input type="number" name="precio" value={formData.precio} onChange={handleInputChange} step="0.01" min="0" required disabled={isLoading} />
               </div>
               
+              {/* Stock */}
               <div className="form-group">
                 <label>Stock *</label>
                 <input type="number" name="stock" value={formData.stock} onChange={handleInputChange} min="0" step="1" required disabled={isLoading} />
               </div>
               
+              {/* Descripción */}
               <div className="form-group full-width">
                 <label>Descripción *</label>
                 <textarea name="descripcion" value={formData.descripcion} onChange={handleInputChange} rows={4} required disabled={isLoading} />
               </div>
               
+              {/* Imagen del producto */}
               <div className="form-group full-width">
                 <label>Imagen del producto</label>
                 <input type="file" accept="image/*" onChange={handleImagenChange} disabled={isLoading} />
@@ -657,9 +687,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </div>
       )}
 
-      {/* ======================================================================
-           PANEL DE GESTION DE PRODUCTOS
-      ====================================================================== */}
+      {/*PANEL DE GESTIÓN DE PRODUCTOS
+          Muestra todos los productos con opciones de edición, ocultar y eliminar*/}
       {showGestionProductos && (
         <div className="gestion-productos">
           <h2>Gestionar Productos</h2>
@@ -674,11 +703,14 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
             <div className="productos-gestion-grid">
               {productos.map(producto => (
                 <div key={producto.id} className={`producto-gestion-card ${producto.activo === 0 ? 'oculto' : ''}`}>
+                  {/* Imagen del producto */}
                   <div className="producto-gestion-imagen">
                     {producto.imagen_nombre ? (
                       <img src={getImagenUrl(producto.imagen_nombre) || ''} alt={producto.nombre} />
                     ) : <span>📷</span>}
                   </div>
+                  
+                  {/* Información del producto */}
                   <div className="producto-gestion-info">
                     <h3>{producto.nombre}</h3>
                     <p>Categoría: {producto.categoria || "Sin categoría"}</p>
@@ -688,6 +720,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                       {producto.activo === 1 ? 'Visible' : 'Oculto'}
                     </p>
                   </div>
+                  
+                  {/* Botones de acción */}
                   <div className="producto-gestion-acciones">
                     <button className="btn-editar" onClick={() => handleEditarProducto(producto)}>Editar</button>
                     <button className="btn-toggle" onClick={() => handleToggleVisibilidad(producto)}>
@@ -702,9 +736,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </div>
       )}
 
-      {/* ======================================================================
-           PANEL DE VENTAS
-      ====================================================================== */}
+      {/* PANEL DE VENTAS
+          Muestra el historial de ventas y un resumen de ingresos*/}
       {showVentas && (
         <div className="ventas-panel">
           <div className="ventas-header">
@@ -718,6 +751,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
             <div className="empty-state">No tienes ventas aún</div>
           ) : (
             <>
+              {/* Lista de ventas */}
               <div className="ventas-lista">
                 {ventas.map(venta => (
                   <div key={venta.id} className="venta-card">
@@ -744,9 +778,8 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         </div>
       )}
 
-      {/* ======================================================================
-           MODAL DE EDICION
-      ====================================================================== */}
+      {/* MODAL DE EDICIÓN DE PRODUCTO
+          Ventana emergente para editar un producto*/}
       {productoEditando && (
         <div className="modal-overlay">
           <div className="modal-content">

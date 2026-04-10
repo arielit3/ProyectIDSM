@@ -12,27 +12,35 @@ import AdminDashboard from "./AdminDashboard";
 import CompradorDashboard from "./Comprador.Dashboard";
 import VendedorDashboard from "./VendedorDashboard";
 
+// INTERFAZ DE DATOS PARA ACTUALIZACIÓN DE PERFIL
 interface UpdateUserData {
-  nombre?: string;
-  correo?: string;
-  apodo?: string;
-  telefono?: string;
-  password?: string;
+  nombre?: string; //nombre completo del usuario, se muestra en el perfil y en el dashboard
+  correo?: string; //correo electrónico del usuario
+  apodo?: string; //apodo o nombre de usuario
+  telefono?: string; //telefono
+  password?: string; //contraseña, se cifra antes de enviar al backend
 }
 
+// COMPONENTE PRINCIPAL
+// Este componente es el contenedor principal que decide que dashboard mostrar
+// según el rol del usuario autenticado administrador, cliente o vendedor
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState<Usuario | null>(null);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [terminoBusqueda, setTerminoBusqueda] = useState<string>("");
+  //ESTADOS DEL COMPONENTE
+  const [user, setUser] = useState<Usuario | null>(null); //usuario autenticado
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]); //lista de usuarios
+  const [loading, setLoading] = useState(true); //estado de carga
+  const [terminoBusqueda, setTerminoBusqueda] = useState<string>(""); //termino de busqueda para compradores
 
+  //FUNCIONES DE AUTENTICACION Y GESTIÓN DE USUARIOS
+  //cierra la sesion del usuario eliminando el token del localStorage y redirigiendo al login
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
-
+  //obtiene la lista de todos los usuarios del sistema,
+  //se usa en el dashboard de administrador para mostrar las estadísticas y la tabla de usuarios
   const handleListarUsuarios = async () => {
     try {
       const data = await listarUsuarios();
@@ -42,9 +50,10 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+    //actualiza los datos del usuario autenticado, se usa en el dashboard de administrador para actualizar el perfil
   const handleUpdateUser = async (updatedData: UpdateUserData) => {
     try {
-      const result = await actualizarUsuario(updatedData);
+      const result = await actualizarUsuario(updatedData); //Recarga los datos del usuario para reflejar los cambios
       const usuarioActualizado = await obtenerUsuarioActual();
       setUser(usuarioActualizado);
       return result;
@@ -54,6 +63,9 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  //EFECTO DE CARGA INICIAL
+  //Al montar el componente, se intenta obtener los datos del usuario
+  // autenticado para mostrar su dashboard correspondiente
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -70,11 +82,14 @@ const DashboardPage: React.FC = () => {
     fetchUser();
   }, [navigate]);
 
+  //FUNCIONES AUXILIARES PARA RENDERIZADO
+  //Obtiene el nombre a mostrar del usuario, si tiene apodo se muestra ese
+  //sino se muestra el nombre completo, si no tiene ninguno se muestra una cadena vacía
   const getDisplayName = () => {
     if (!user) return "";
     return user.apodo || user.nombre;
   };
-
+  //Renderiza una etiqueta con el nombre del rol del usuario con estilos diferentes para cada rol
   const getRoleBadge = (rol?: string) => {
     switch (rol) {
       case "administrador": return <span className="role-badge admin">Administrador</span>;
@@ -84,12 +99,16 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  //Obtiene la inicial del usuario para mostrar en el avatar del navbar, si no hay usuario o nombre se muestra U por defecto
   const getUserInitial = () => {
     if (!user) return "U";
     const nameToUse = user.apodo || user.nombre;
     return nameToUse ? nameToUse.charAt(0).toUpperCase() : "U";
   };
 
+  //RENDERIZADO CONDICIONAL SEGÚN ESTADO
+  //muestra pantalla de carga mientras se obtienen los datos del usuario
+  // si no se pudo cargar el usuario muestra un mensaje de error, sino muestra el dashboard correspondiente al rol del usuario
   if (loading) {
     return (
       <div className="loading-container">
@@ -97,7 +116,7 @@ const DashboardPage: React.FC = () => {
       </div>
     );
   }
-
+  //sino hay usuarios despues de cragar muestra un mensaje de error
   if (!user) {
     return (
       <div className="loading-container">
@@ -106,6 +125,7 @@ const DashboardPage: React.FC = () => {
     );
   }
 
+  //RENDERIZADO PRINCIPAL
   return (
     <div className="dashboard-container">
       <nav className="navbar">

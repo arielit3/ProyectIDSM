@@ -89,10 +89,7 @@ class VerificacionOTP(Base):
     estado = Column(String, default='vigente', nullable=False)
 
 
-# ============================================================================
 # SOLICITUDES
-# ============================================================================
-
 class SolicitudProducto(Base):
     __tablename__ = "solicitudes_producto"
 
@@ -114,11 +111,7 @@ class SolicitudProducto(Base):
     # Relacion con Venta (uno a uno)
     venta = relationship("Venta", back_populates="solicitud", uselist=False, cascade="all, delete-orphan")
 
-
-# ============================================================================
 # VENTAS
-# ============================================================================
-
 class Venta(Base):
     __tablename__ = "ventas"
 
@@ -139,11 +132,7 @@ class Venta(Base):
     vendedor = relationship("Usuario", foreign_keys=[vendedor_id])
     producto = relationship("Productos")
 
-
-# ============================================================================
 # NOTIFICACIONES
-# ============================================================================
-
 class Notificacion(Base):
     __tablename__ = "notificaciones"
 
@@ -158,9 +147,7 @@ class Notificacion(Base):
     
     usuario = relationship("Usuario", back_populates="notificaciones")
     
-# ============================================================================
 # REPORTES DE VENDEDORES 
-# ============================================================================
 
 class ReporteVendedor(Base):
     __tablename__ = "reportes_vendedor"

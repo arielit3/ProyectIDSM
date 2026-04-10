@@ -12,44 +12,34 @@ import {
 import { IconoCheck, IconoX } from "../components/Iconos";
 import "./Dashboard.css";
 
-// ============================================================================
 // INTERFAZ DE PROPS
-// ============================================================================
-
 interface AdminDashboardProps {
-  user: Usuario;
-  usuarios: Usuario[];
-  onListarUsuarios: () => void;
+  user: Usuario; //Datos del administrador autenticado
+  usuarios: Usuario[]; //Lista de todos los usuarios del sistema
+  onListarUsuarios: () => void; //funcion para recargar la lista de usuarios
 }
 
-// ============================================================================
 // COMPONENTE PRINCIPAL
-// ============================================================================
-
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
   user, 
   usuarios, 
   onListarUsuarios 
 }) => {
   
-  // ==========================================================================
   // ESTADOS DEL COMPONENTE
-  // ==========================================================================
-
-  const [solicitudesVendedor, setSolicitudesVendedor] = useState<SolicitudVendedor[]>([]);
-  const [reportes, setReportes] = useState<ReporteVendedor[]>([]);
-  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false);
+  const [solicitudesVendedor, setSolicitudesVendedor] = useState<SolicitudVendedor[]>([]); //lista de solicitudes de usuarios que quieren ser vendedores
+  const [reportes, setReportes] = useState<ReporteVendedor[]>([]); //Lista de reportes contra vendedores
+  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false); //EStados de carga para mostrar indicadores de carga
   const [cargandoReportes, setCargandoReportes] = useState(false);
-  const [tabActiva, setTabActiva] = useState<string>("usuarios");
-  const [filtroReporte, setFiltroReporte] = useState<string>("todos");
-  
-  // ==========================================================================
+  const [tabActiva, setTabActiva] = useState<string>("usuarios"); //Pestaña activa del dashboard, puede ser usuarios, solicitudes o reportes
+  const [filtroReporte, setFiltroReporte] = useState<string>("todos"); //Filtro de los reportes, puede ser todos, pendientes, resueltos o rechazados
+
   // ESTADOS PARA MODALES
-  // ==========================================================================
+  //Modal de respuesta a solicitudes de vendedor
   const [modalRespuestaAbierto, setModalRespuestaAbierto] = useState(false);
   const [solicitudActual, setSolicitudActual] = useState<{id: number, accion: string, nombre: string} | null>(null);
   const [respuestaAdmin, setRespuestaAdmin] = useState("");
-  
+  //Modal para revisar un reporte contra un vendedor
   const [modalReporteAbierto, setModalReporteAbierto] = useState(false);
   const [reporteActual, setReporteActual] = useState<ReporteVendedor | null>(null);
   const [respuestaReporte, setRespuestaReporte] = useState("");
@@ -67,10 +57,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     tipo: "info"
   });
 
-  // ==========================================================================
   // FUNCIONES DE MODALES
-  // ==========================================================================
-  
+  //Muestra un mensaje en un modal, se puede usar para mostrar errores o confirmaciones al admin
   const mostrarMensaje = (titulo: string, mensaje: string, tipo: "info" | "success" | "error" | "warning" = "info") => {
     setModalMensaje({ isOpen: true, titulo, mensaje, tipo });
   };
@@ -80,7 +68,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setRespuestaAdmin("");
     setModalRespuestaAbierto(true);
   };
-
+  //Envia la respuesta del admin para aprobar o rechazar la solicitud de vendedor, se cifra la respuesta antes de enviarla
   const enviarRespuesta = async () => {
     if (!solicitudActual) return;
     if (respuestaAdmin.trim() === "") {
@@ -89,8 +77,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
     
     try {
+      //Cifrado de SHA-256 de la respuesta del admin para mayor seguridad, se envia el texto original
+      //para que el backend pueda verificarlo y almacenarlo de forma segura sin exponer la respuesta en texto plano en la base de datos
       const respuestaCifrada = prepararMensajeCifrado(respuestaAdmin);
-      
+      //Procesa la solicitud la aprueba o la rechaza
       await procesarSolicitudVendedor(
         solicitudActual.id, 
         solicitudActual.accion, 
@@ -98,8 +88,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       );
       
       mostrarMensaje("Exito", `Solicitud ${solicitudActual.accion === "aprobado" ? "aprobada" : "rechazada"} correctamente`, "success");
-      await cargarSolicitudesVendedor();
-      onListarUsuarios();
+      await cargarSolicitudesVendedor(); //recargar la lista
+      onListarUsuarios(); //actualiza la lista de usuarios para reflejar los cambios de rol
       setModalRespuestaAbierto(false);
       setSolicitudActual(null);
     } catch (error: any) {
@@ -113,7 +103,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setRespuestaReporte("");
     setModalReporteAbierto(true);
   };
-
+  //Procesa un reporte marcandolo como resuelto o rechazado, se envia una respuesta del admin que se cifra antes de enviarla para mayor seguridad
   const procesarReporte = async (nuevoEstado: string) => {
     if (!reporteActual) return;
     
@@ -126,7 +116,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         "success"
       );
       
-      await cargarReportes();
+      await cargarReportes(); //Recarga la lista de reportes
       setModalReporteAbierto(false);
       setReporteActual(null);
       setRespuestaReporte("");
@@ -135,10 +125,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // ==========================================================================
   // FUNCIONES DE CARGA DE DATOS
-  // ==========================================================================
-
+  //Carga todas las solicitudes de usuarios que quieren ser vendedores, 
+  //se llama al montar el componente y cada vez que se aprueba o rechaza una solicitud para mantener la lista actualizada
   const cargarSolicitudesVendedor = useCallback(async () => {
     try {
       setCargandoSolicitudes(true);
@@ -151,10 +140,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setCargandoSolicitudes(false);
     }
   }, []);
-
+  //Carga todos los reportes contra vendedores, se puede filtrar por estado
+  //se llama al montar el componente y cada vez que se procesa un reporte para mantener la lista actualizada
   const cargarReportes = useCallback(async () => {
     try {
-      setCargandoReportes(true);
+      setCargandoReportes(true); //Si el filtro es diferente a "todos" se carga solo los reportes con ese estado, si es "todos" se cargan todos los reportes sin filtrar por estado
       const filtroEstado = filtroReporte === "todos" ? undefined : filtroReporte;
       const data = await obtenerTodosReportes(filtroEstado);
       setReportes(data);
@@ -166,7 +156,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, [filtroReporte]);
 
-  // Cargar datos al montar el componente o cambiar tab
+  // Cargar datos al montar el componente 
   useEffect(() => {
     if (tabActiva === "solicitudes") {
       cargarSolicitudesVendedor();
@@ -177,16 +167,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, [tabActiva, cargarSolicitudesVendedor, cargarReportes, onListarUsuarios]);
 
-  // ==========================================================================
   // CALCULOS PARA ESTADISTICAS
-  // ==========================================================================
-
-  const totalUsuarios = usuarios.length;
+  const totalUsuarios = usuarios.length; 
   const totalVendedores = usuarios.filter(u => u.relacion?.rol === "vendedor").length;
   const totalClientes = usuarios.filter(u => u.relacion?.rol === "cliente").length;
   const solicitudesPendientes = solicitudesVendedor.filter(s => s.estado === "pendiente").length;
   const reportesPendientes = reportes.filter(r => r.estado === "pendiente").length;
-
+  //Convierte el codigo de rol a un nombre legible para mostrar en la tabla de usuarios
   const getRolNombre = (rol: string | undefined) => {
     if (rol === "administrador") return "Administrador";
     if (rol === "vendedor") return "Vendedor";
@@ -194,14 +181,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return "Sin rol";
   };
 
-  // ==========================================================================
   // RENDERIZADO DEL COMPONENTE
-  // ==========================================================================
-
   return (
     <div className="admin-dashboard">
       
-      {/* HEADER DEL ADMINISTRADOR */}
+      {/* HEADER DEL ADMINISTRADOR 
+      muestra estadisticas claves del sistema*/}
       <div className="admin-header">
         <div className="admin-welcome">
           <h1>Panel de Administrador</h1>

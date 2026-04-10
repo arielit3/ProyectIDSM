@@ -6,26 +6,27 @@ from datetime import datetime
 import logging
 
 import models
-from deps import get_db, get_current_user  # 👈 CORREGIDO: importar desde deps
+from deps import get_db, get_current_user  
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/reportes", tags=["Reportes"])
 
-# ============================================================================
 # MODELOS PYDANTIC
-# ============================================================================
 
 class ReporteVendedorCreate(BaseModel):
+    """Modelo para crear un reporte contra un vendedor"""
     vendedor_id: int
     motivo: str
 
 class ReporteVendedorUpdate(BaseModel):
-    estado: Optional[str] = None
+    """Modelo para actualizar un reporte (solo administradores)"""
+    estado: Optional[str] = None  # Valores posibles: pendiente, resuelto, rechazado
     respuesta_admin: Optional[str] = None
 
 class ReporteVendedorResponse(BaseModel):
+    """Modelo de respuesta para reportes con datos del comprador y vendedor"""
     id: int
     comprador_id: int
     vendedor_id: int
@@ -40,11 +41,18 @@ class ReporteVendedorResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# ============================================================================
 # FUNCIONES AUXILIARES
-# ============================================================================
-
 def crear_notificacion_admin(db: Session, reporte, comprador_nombre: str, vendedor_nombre: str):
+    """
+    Notifica a todos los administradores cuando se crea un nuevo reporte.
+    
+    Lógica:
+    - Busca todos los usuarios con rol "administrador"
+    - Para cada administrador, crea una notificación con el tipo "reporte"
+    - La notificación incluye quién reportó y a quién
+    
+    Retorna: None (solo crea notificaciones en BD)
+    """
     admins = db.query(models.Usuario).filter(
         models.Usuario.relacion.has(rol="administrador")
     ).all()
@@ -60,6 +68,15 @@ def crear_notificacion_admin(db: Session, reporte, comprador_nombre: str, vended
     db.commit()
 
 def crear_notificacion_comprador(db: Session, reporte, vendedor_nombre: str):
+    """
+    Notifica al comprador cuando su reporte es resuelto o rechazado.
+    
+    Lógica:
+    - Solo se ejecuta si el estado del reporte es "resuelto" o "rechazado"
+    - Incluye la respuesta del administrador en el mensaje
+    
+    Retorna: None (solo crea notificaciones en BD)
+    """
     if reporte.estado in ["resuelto", "rechazado"]:
         notificacion = models.Notificacion(
             usuario_id=reporte.comprador_id,
@@ -71,6 +88,15 @@ def crear_notificacion_comprador(db: Session, reporte, vendedor_nombre: str):
         db.commit()
 
 def crear_notificacion_vendedor(db: Session, vendedor_id: int, mensaje: str):
+    """
+    Notifica al vendedor que ha recibido un reporte.
+    
+    Lógica:
+    - Crea una notificación tipo "reporte_vendedor"
+    - El mensaje puede personalizarse según el motivo del reporte
+    
+    Retorna: None (solo crea notificaciones en BD)
+    """
     notificacion = models.Notificacion(
         usuario_id=vendedor_id,
         titulo="Has recibido un reporte",
@@ -80,16 +106,29 @@ def crear_notificacion_vendedor(db: Session, vendedor_id: int, mensaje: str):
     db.add(notificacion)
     db.commit()
 
-# ============================================================================
 # ENDPOINTS
-# ============================================================================
-
 @router.post("/vendedor", response_model=ReporteVendedorResponse)
 def reportar_vendedor(
     reporte: ReporteVendedorCreate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    """
+    Permite a un comprador reportar a un vendedor.
+    
+    Lógica de validación:
+    - Verifica que el usuario actual tenga rol "cliente" (solo compradores pueden reportar)
+    - Verifica que no se esté reportando a sí mismo
+    - Verifica que el vendedor exista y tenga rol "vendedor"
+    - Verifica que el motivo tenga al menos 10 caracteres (evita reportes vacíos)
+    
+    Flujo:
+    - Crea el reporte con estado "pendiente"
+    - Notifica a todos los administradores
+    - Retorna el reporte creado con nombres del comprador y vendedor
+    
+    Retorna: ReporteVendedorResponse con los datos del reporte
+    """
     if current_user.relacion.rol != "cliente":
         raise HTTPException(status_code=403, detail="Solo compradores pueden reportar")
     
@@ -136,6 +175,17 @@ def obtener_todos_reportes(
     current_user: models.Usuario = Depends(get_current_user),
     estado: Optional[str] = None
 ):
+    """
+    Obtiene todos los reportes (solo administradores).
+    
+    Lógica:
+    - Verifica que el usuario sea administrador
+    - Permite filtrar por estado (pendiente, resuelto, rechazado)
+    - Ordena por fecha de creación descendente (más recientes primero)
+    - Incluye nombres del comprador y vendedor mediante relaciones
+    
+    Retorna: Lista de ReporteVendedorResponse
+    """
     if current_user.relacion.rol != "administrador":
         raise HTTPException(status_code=403, detail="No autorizado")
     
@@ -169,6 +219,17 @@ def obtener_reportes_vendedor(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    """
+    Obtiene todos los reportes de un vendedor específico (solo administradores).
+    
+    Lógica:
+    - Verifica que el usuario sea administrador
+    - Filtra reportes por vendedor_id
+    - Ordena por fecha de creación descendente
+    - Incluye nombres del comprador y vendedor
+    
+    Retorna: Lista de ReporteVendedorResponse para el vendedor solicitado
+    """
     if current_user.relacion.rol != "administrador":
         raise HTTPException(status_code=403, detail="No autorizado")
     
@@ -201,6 +262,23 @@ def actualizar_reporte(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    """
+    Actualiza un reporte (solo administradores).
+    
+    Lógica:
+    - Verifica que el usuario sea administrador
+    - Busca el reporte por ID (404 si no existe)
+    - Si se actualiza el estado a "resuelto" o "rechazado", establece fecha_resolucion
+    - Si se proporciona respuesta_admin, la guarda
+    - Notifica al comprador sobre la resolución/rechazo
+    
+    Estados posibles:
+    - pendiente: reporte sin resolver
+    - resuelto: reporte aceptado y resuelto a favor del comprador
+    - rechazado: reporte rechazado (sin mérito)
+    
+    Retorna: ReporteVendedorResponse actualizado
+    """
     if current_user.relacion.rol != "administrador":
         raise HTTPException(status_code=403, detail="No autorizado")
     
@@ -211,11 +289,13 @@ def actualizar_reporte(
     if not reporte:
         raise HTTPException(status_code=404, detail="Reporte no encontrado")
     
+    # Actualizar estado si se proporcionó
     if actualizacion.estado:
         reporte.estado = actualizacion.estado
         if actualizacion.estado in ["resuelto", "rechazado"]:
             reporte.fecha_resolucion = datetime.utcnow()
     
+    # Actualizar respuesta del admin si se proporcionó
     if actualizacion.respuesta_admin:
         reporte.respuesta_admin = actualizacion.respuesta_admin
     
@@ -225,6 +305,7 @@ def actualizar_reporte(
     comprador_nombre = reporte.comprador.nombre if reporte.comprador else None
     vendedor_nombre = reporte.vendedor.nombre if reporte.vendedor else None
     
+    # Notificar al comprador si el reporte fue resuelto o rechazado
     if vendedor_nombre:
         crear_notificacion_comprador(db, reporte, vendedor_nombre)
     
@@ -248,6 +329,22 @@ def contar_reportes_vendedor(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    """
+    Obtiene estadísticas de reportes para un vendedor específico (solo administradores).
+    
+    Lógica:
+    - Verifica que el usuario sea administrador
+    - Cuenta total de reportes del vendedor
+    - Cuenta reportes pendientes
+    - Cuenta reportes resueltos
+    
+    Útil para:
+    - Dashboard de administración
+    - Identificar vendedores problemáticos
+    - Monitorear volumen de reportes
+    
+    Retorna: Diccionario con conteos (total, pendientes, resueltos)
+    """
     if current_user.relacion.rol != "administrador":
         raise HTTPException(status_code=403, detail="No autorizado")
     
