@@ -11,10 +11,13 @@ import {
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,
   obtenerMisVentas,
+  obtenerMensajesSolicitud,
+  enviarMensajeSolicitud,
   type Producto,
   type SolicitudProducto,
   type Notificacion,
-  type Venta
+  type Venta,
+  type MensajeSolicitud
 } from "../services/products";
 import { type Usuario } from "../services/users";
 import { IconoCampanaConPunto, IconoCampana, IconoCheck, IconoX } from "../components/Iconos";
@@ -41,6 +44,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   // ESTADOS DE LA INTERFAZ
   const [showNewProductForm, setShowNewProductForm] = useState(false);     // Muestra formulario de nuevo producto
   const [showGestionProductos, setShowGestionProductos] = useState(false); // Muestra panel de gestión de productos
+  const [showSolicitudesPanel, setShowSolicitudesPanel] = useState(false); // Muestra panel de solicitudes y mensajes
   const [showVentas, setShowVentas] = useState(false);                     // Muestra panel de ventas
   const [showNotificaciones, setShowNotificaciones] = useState(false);     // Muestra dropdown de notificaciones
   const [isLoading, setIsLoading] = useState(false);                       // Indica si se está procesando una petición
@@ -56,11 +60,14 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   const [productoEditando, setProductoEditando] = useState<Producto | null>(null); // Producto en edición
   const [solicitudes, setSolicitudes] = useState<SolicitudProducto[]>([]); // Solicitudes recibidas
   const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);   // Contador de solicitudes pendientes
-  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false);   // Carga de solicitudes
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]); // Lista de notificaciones
   const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0); // Contador de notificaciones no leídas
   const [ventas, setVentas] = useState<Venta[]>([]);                        // Lista de ventas realizadas
   const [cargandoVentas, setCargandoVentas] = useState(false);             // Carga de ventas
+  const [chatAbiertoId, setChatAbiertoId] = useState<number | null>(null);
+  const [cargandoChatId, setCargandoChatId] = useState<number | null>(null);
+  const [mensajesSolicitud, setMensajesSolicitud] = useState<Record<number, MensajeSolicitud[]>>({});
+  const [nuevoMensajeSolicitud, setNuevoMensajeSolicitud] = useState<Record<number, string>>({});
 
   // ESTADO DEL FORMULARIO
   const [formData, setFormData] = useState({
@@ -95,15 +102,12 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   const cargarSolicitudes = useCallback(async () => {
     if (!user?.id) return;
     try {
-      setCargandoSolicitudes(true);
       const data = await obtenerSolicitudesRecibidas();
       setSolicitudes(data);
       const pendientes = data.filter(s => s.estado === "pendiente").length;
       setSolicitudesPendientes(pendientes);
     } catch (error) {
       console.error("Error al cargar solicitudes:", error);
-    } finally {
-      setCargandoSolicitudes(false);
     }
   }, [user?.id]);
 
@@ -362,6 +366,47 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
     }
   };
 
+  const abrirChatSolicitud = async (solicitudId: number) => {
+    // :> Esto abre una conversacion en modal para que no quede escondida en notificaciones
+    setShowNotificaciones(false);
+    setChatAbiertoId(solicitudId);
+    setCargandoChatId(solicitudId);
+
+    try {
+      const data = await obtenerMensajesSolicitud(solicitudId);
+      setMensajesSolicitud(prev => ({ ...prev, [solicitudId]: data }));
+    } catch (error) {
+      console.error("Error al abrir chat:", error);
+      setError("No se pudo abrir la conversacion");
+    } finally {
+      setCargandoChatId(null);
+    }
+  };
+
+  const cerrarChatSolicitud = () => {
+    // :> Esto solo cierra el modal sin tirar mensajes ya cargados
+    setChatAbiertoId(null);
+    setCargandoChatId(null);
+  };
+
+  const enviarMensajeDeSolicitud = async (solicitudId: number) => {
+    // :> Ahora el vendedor tambien puede contestarle al comprador por aqui
+    const texto = (nuevoMensajeSolicitud[solicitudId] || "").trim();
+    if (!texto) return;
+
+    try {
+      const mensaje = await enviarMensajeSolicitud(solicitudId, texto);
+      setMensajesSolicitud(prev => ({
+        ...prev,
+        [solicitudId]: [...(prev[solicitudId] || []), mensaje]
+      }));
+      setNuevoMensajeSolicitud(prev => ({ ...prev, [solicitudId]: "" }));
+      await cargarNotificaciones();
+    } catch (error: any) {
+      setError(error.response?.data?.detail || "No se pudo enviar el mensaje");
+    }
+  };
+
   // GESTIÓN DE NOTIFICACIONES
   /**
    * Marca una notificación como leída
@@ -423,10 +468,10 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
 
   // CÁLCULOS PARA ESTADÍSTICAS
   const totalProductos = productos.length;                              // Total de productos
-  const totalStock = productos.reduce((sum, p) => sum + (typeof p.stock === 'number' ? p.stock : 0), 0); // Stock total
   const productosVisibles = productos.filter(p => p.activo === 1).length; // Productos visibles
   const totalVentas = ventas.length;                                    // Total de ventas
   const ingresosTotales = ventas.reduce((sum, v) => sum + v.total, 0);  // Ingresos totales
+  const solicitudChatActual = solicitudes.find(solicitud => solicitud.id === chatAbiertoId) || null;
 
   // RENDERIZADO DEL COMPONENTE
   return (
@@ -504,6 +549,12 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                             >
                               <IconoX className="icono-x" /> Rechazar
                             </button>
+                            <button 
+                              className="btn-toggle"
+                              onClick={() => abrirChatSolicitud(solicitud.id)}
+                            >
+                              Ver mensajes
+                            </button>
                           </div>
                         </div>
                       ))
@@ -569,6 +620,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
           onClick={() => {
             setShowNewProductForm(!showNewProductForm);
             setShowGestionProductos(false);
+            setShowSolicitudesPanel(false);
             setShowVentas(false);
             resetForm();
             setError("");
@@ -584,6 +636,7 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
           onClick={() => {
             setShowGestionProductos(!showGestionProductos);
             setShowNewProductForm(false);
+            setShowSolicitudesPanel(false);
             setShowVentas(false);
             resetForm();
             setError("");
@@ -595,11 +648,28 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
         
         {/* Botón para ver ventas */}
         <button 
+          className="btn-gestionar"
+          onClick={() => {
+            setShowSolicitudesPanel(!showSolicitudesPanel);
+            setShowGestionProductos(false);
+            setShowNewProductForm(false);
+            setShowVentas(false);
+            resetForm();
+            setError("");
+            setSuccess("");
+            cargarSolicitudes();
+          }}
+        >
+          Ver Solicitudes
+        </button>
+
+        <button 
           className="btn-ventas"
           onClick={() => {
             setShowVentas(!showVentas);
             setShowGestionProductos(false);
             setShowNewProductForm(false);
+            setShowSolicitudesPanel(false);
             resetForm();
             setError("");
             setSuccess("");
@@ -618,6 +688,64 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
           {refrescando ? "Actualizando..." : "⟳ Actualizar"}
         </button>
       </div>
+
+      {showSolicitudesPanel && (
+        <div className="solicitudes-section vendedor-solicitudes-section">
+          <div className="section-header">
+            <h2 className="section-title">Solicitudes y conversaciones</h2>
+          </div>
+
+          {solicitudes.length === 0 ? (
+            <div className="empty-state">No tienes solicitudes todavia</div>
+          ) : (
+            <div className="solicitudes-grid">
+              {solicitudes.map(solicitud => (
+                <div key={solicitud.id} className="solicitud-card">
+                  <div className="solicitud-header">
+                    <span className="producto-nombre">{solicitud.producto?.nombre}</span>
+                    <span className={`estado-badge ${solicitud.estado}`}>
+                      {solicitud.estado === "pendiente" ? "Pendiente" :
+                       solicitud.estado === "aceptado" ? "Aceptado" :
+                       solicitud.estado === "rechazado" ? "Rechazado" :
+                       solicitud.estado === "entregado" ? "Entregado" : "Completado"}
+                    </span>
+                  </div>
+                  <div className="solicitud-body">
+                    <p>Comprador: {solicitud.comprador?.apodo || solicitud.comprador?.nombre}</p>
+                    <p>Cantidad: {solicitud.cantidad}</p>
+                    <p>Fecha: {new Date(solicitud.fecha_solicitud).toLocaleString()}</p>
+                    {solicitud.mensaje && <p>Mensaje inicial: "{solicitud.mensaje}"</p>}
+                  </div>
+                  <div className="solicitud-actions">
+                    {solicitud.estado === "pendiente" && (
+                      <button 
+                        className="btn-aceptar-solicitud"
+                        onClick={() => handleAceptarSolicitud(solicitud.id)}
+                      >
+                        <IconoCheck className="icono-check" /> Aceptar
+                      </button>
+                    )}
+                    {solicitud.estado === "pendiente" && (
+                      <button 
+                        className="btn-rechazar-solicitud"
+                        onClick={() => handleRechazarSolicitud(solicitud.id)}
+                      >
+                        <IconoX className="icono-x" /> Rechazar
+                      </button>
+                    )}
+                    <button 
+                      className="btn-toggle"
+                      onClick={() => abrirChatSolicitud(solicitud.id)}
+                    >
+                      Ver mensajes
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/*FORMULARIO PARA CREAR NUEVO PRODUCTO
         Se muestra cuando showNewProductForm es true*/}
@@ -780,6 +908,54 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
 
       {/* MODAL DE EDICIÓN DE PRODUCTO
           Ventana emergente para editar un producto*/}
+      {solicitudChatActual && (
+        <div className="modal-overlay" onClick={cerrarChatSolicitud}>
+          <div className="modal-content modal-chat-solicitud" onClick={(e) => e.stopPropagation()}>
+            <h3>Mensajes de solicitud</h3>
+            <div className="chat-solicitud-resumen">
+              <p><strong>Producto:</strong> {solicitudChatActual.producto?.nombre}</p>
+              <p><strong>Comprador:</strong> {solicitudChatActual.comprador?.apodo || solicitudChatActual.comprador?.nombre}</p>
+              <p><strong>Estado:</strong> {solicitudChatActual.estado}</p>
+            </div>
+            <div className="chat-solicitud-box chat-solicitud-box-modal">
+              {/* :> Aqui el vendedor contesta desde un modal fijo y ya no depende del dropdown */}
+              {cargandoChatId === solicitudChatActual.id ? (
+                <p>Cargando mensajes...</p>
+              ) : (
+                <>
+                  <div className="chat-solicitud-lista">
+                    {(mensajesSolicitud[solicitudChatActual.id] || []).length === 0 ? (
+                      <p>Todavia no hay mensajes en esta solicitud</p>
+                    ) : (
+                      (mensajesSolicitud[solicitudChatActual.id] || []).map(mensaje => (
+                        <div key={mensaje.id} className={`chat-solicitud-item ${mensaje.emisor_id === user.id ? "mio" : "otro"}`}>
+                          <strong>{mensaje.emisor?.apodo || mensaje.emisor?.nombre || "Usuario"}</strong>
+                          <p>{mensaje.mensaje}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="chat-solicitud-form">
+                    <textarea
+                      value={nuevoMensajeSolicitud[solicitudChatActual.id] || ""}
+                      onChange={(e) => setNuevoMensajeSolicitud(prev => ({ ...prev, [solicitudChatActual.id]: e.target.value }))}
+                      placeholder="Escribe algo para el comprador"
+                      rows={3}
+                    />
+                    <button className="btn-guardar" onClick={() => enviarMensajeDeSolicitud(solicitudChatActual.id)}>
+                      Enviar mensaje
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn-cancelar" onClick={cerrarChatSolicitud}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {productoEditando && (
         <div className="modal-overlay">
           <div className="modal-content">

@@ -13,14 +13,16 @@ import {
   marcarTodasNotificacionesLeidas,
   crearSolicitudVendedor,
   obtenerMiSolicitudVendedor,
-  prepararMensajeCifrado,
   crearReporteVendedor,
+  obtenerMensajesSolicitud,
+  enviarMensajeSolicitud,
   type SolicitudProducto,
   type Notificacion,
-  type SolicitudVendedor
+  type SolicitudVendedor,
+  type MensajeSolicitud
 } from "../services/products";
 import { type Usuario } from "../services/users";
-import { IconoCampanaConPunto, IconoCampana, IconoCheck, IconoX } from "../components/Iconos";
+import { IconoCampanaConPunto, IconoCampana } from "../components/Iconos";
 import "./Dashboard.css";
 
 //URL base de la API, se carga desde el .env
@@ -62,6 +64,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   //Modal para confirmar entrega de producto
   const [modalEntregaAbierto, setModalEntregaAbierto] = useState(false);
   const [solicitudEntregando, setSolicitudEntregando] = useState<SolicitudProducto | null>(null);
+  const [confirmandoEntrega, setConfirmandoEntrega] = useState(false);
   
   //Modal para solicitar ser vendedor
   const [modalSolicitudVendedorAbierto, setModalSolicitudVendedorAbierto] = useState(false);
@@ -73,6 +76,10 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   const [vendedorReportado, setVendedorReportado] = useState<{ id: number; nombre: string } | null>(null);
   const [motivoReporte, setMotivoReporte] = useState("");
   const [enviandoReporte, setEnviandoReporte] = useState(false);
+  const [chatAbiertoId, setChatAbiertoId] = useState<number | null>(null);
+  const [mensajesSolicitud, setMensajesSolicitud] = useState<Record<number, MensajeSolicitud[]>>({});
+  const [nuevoMensajeSolicitud, setNuevoMensajeSolicitud] = useState<Record<number, string>>({});
+  const [cargandoChatId, setCargandoChatId] = useState<number | null>(null);
 
   //Estados interfaz 
   const [solicitudesDesplegado, setSolicitudesDesplegado] = useState(true); //Controla si la sección  de mis solicitudes esta desplegada 
@@ -271,14 +278,11 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     setSolicitando(productoSeleccionado.id); //Desabilita el botón mientras se envia
     
     try {
-      //Cifrado SHA-256 del mensaje
-      const mensajeCifrado = mensajeSolicitud ? prepararMensajeCifrado(mensajeSolicitud) : null;
-      
       await crearSolicitudProducto({
         producto_id: productoSeleccionado.id,
         vendedor_id: productoSeleccionado.vendedor_id,
         cantidad: cantidadSolicitud,
-        mensaje: mensajeCifrado ? mensajeCifrado.textoOriginal : "",
+        mensaje: mensajeSolicitud.trim(),
       });
       
       setMensajeExito(prev => ({ ...prev, [productoSeleccionado.id]: "Solicitud enviada" }));
@@ -291,8 +295,10 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
       }, 3000);
       
       cerrarModal();
-      cargarSolicitudesEnviadas(); //Recarga la lista de solicitudes 
-      cargarNotificaciones(); //Recarga de notificaciones
+      await Promise.all([
+        cargarSolicitudesEnviadas(), //Recarga la lista de solicitudes
+        cargarNotificaciones(), //Recarga de notificaciones
+      ]);
       
     } catch (error: any) {
       console.error("Error al enviar solicitud:", error);
@@ -305,14 +311,20 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   // FUNCIONES DE ENTREGA DE PRODUCTO
   //Marcar una solicitud como entregada, actualiza el estado de la solicitud y muestra un mensaje de éxito
   const handleMarcarEntregado = async (solicitudId: number) => {
+    setConfirmandoEntrega(true);
     try {
       await marcarSolicitudComoEntregada(solicitudId);
-      mostrarMensaje("Exito", "Producto marcado como entregado", "success");
-      cargarSolicitudesEnviadas(); //Recarga la lista
-      cargarNotificaciones(); //Recarga notificaciones
+      await Promise.all([
+        cargarSolicitudesEnviadas(), //Recarga la lista
+        cargarNotificaciones(), //Recarga notificaciones
+      ]);
+      mostrarMensaje("Exito", "Producto marcado como recibido", "success");
       setModalEntregaAbierto(false);
+      setSolicitudEntregando(null);
     } catch (error: any) {
-      mostrarMensaje("Error", error.response?.data?.detail || "Error al marcar como entregado", "error");
+      mostrarMensaje("Error", error.response?.data?.detail || "Error al marcar como recibido", "error");
+    } finally {
+      setConfirmandoEntrega(false);
     }
   };
 
@@ -320,6 +332,12 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   const abrirModalEntrega = (solicitud: SolicitudProducto) => {
     setSolicitudEntregando(solicitud);
     setModalEntregaAbierto(true);
+  };
+
+  const cerrarModalEntrega = () => {
+    if (confirmandoEntrega) return;
+    setModalEntregaAbierto(false);
+    setSolicitudEntregando(null);
   };
 
   // FUNCIONES DE SOLICITUD PARA SER VENDEDOR
@@ -351,11 +369,8 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     setEnviandoSolicitudVendedor(true);
     
     try {
-      //cifrado del Sha-256 del motivo
-      const motivoCifrado = prepararMensajeCifrado(motivoSolicitudVendedor);
-      
       await crearSolicitudVendedor({ 
-        motivo: motivoCifrado.textoOriginal,
+        motivo: motivoSolicitudVendedor.trim(),
       });
       
       mostrarMensaje("Exito", "Solicitud enviada correctamente. Recibirás una notificacion cuando sea procesada.", "success");
@@ -429,6 +444,46 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
     }
   };
 
+  const toggleChatSolicitud = async (solicitudId: number) => {
+    // :> Aqui abrimos el chat en modal para que la lista no se haga eterna
+    setChatAbiertoId(solicitudId);
+    setCargandoChatId(solicitudId);
+
+    try {
+      const data = await obtenerMensajesSolicitud(solicitudId);
+      setMensajesSolicitud(prev => ({ ...prev, [solicitudId]: data }));
+    } catch (error) {
+      console.error("Error al cargar mensajes:", error);
+      mostrarMensaje("Error", "No se pudo cargar la conversacion", "error");
+    } finally {
+      setCargandoChatId(null);
+    }
+  };
+
+  const cerrarChatSolicitud = () => {
+    // :> Esto solo cierra el modal y deja cacheada la charla ya cargada
+    setChatAbiertoId(null);
+    setCargandoChatId(null);
+  };
+
+  const enviarMensajeDeSolicitud = async (solicitudId: number) => {
+    // :> Esto ya deja hablar con el vendedor dentro de la solicitud
+    const texto = (nuevoMensajeSolicitud[solicitudId] || "").trim();
+    if (!texto) return;
+
+    try {
+      const mensaje = await enviarMensajeSolicitud(solicitudId, texto);
+      setMensajesSolicitud(prev => ({
+        ...prev,
+        [solicitudId]: [...(prev[solicitudId] || []), mensaje]
+      }));
+      setNuevoMensajeSolicitud(prev => ({ ...prev, [solicitudId]: "" }));
+      cargarNotificaciones();
+    } catch (error: any) {
+      mostrarMensaje("Error", error.response?.data?.detail || "No se pudo enviar el mensaje", "error");
+    }
+  };
+
   // FUNCIONES AUXILIARES
   //Construye la URL completa para acceder a una imagen guardada
   const getImagenUrl = (imagenNombre: string | null): string | null => {
@@ -463,6 +518,7 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   //Nombre para mostrar del usuario, se utiliza el apodo si existe o el nombre real 
   //si no hay apodo, esto para una experiencia más personalizada en el dashboard
   const displayName = user.apodo || user.nombre;
+  const solicitudChatActual = solicitudesEnviadas.find(solicitud => solicitud.id === chatAbiertoId) || null;
 
   // RENDERIZADO DEL COMPONENTE
   return (
@@ -594,9 +650,15 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
                     className="btn-entregar"
                     onClick={() => abrirModalEntrega(solicitud)}
                   >
-                    Marcar como entregado
+                    Marcar como recibido
                   </button>
                 )}
+                <button 
+                  className="btn-reportar"
+                  onClick={() => toggleChatSolicitud(solicitud.id)}
+                >
+                  Ver mensajes
+                </button>
               </div>
             </div>
           ))}
@@ -712,9 +774,9 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
                     <button 
                       className="btn-reportar"
                       onClick={() => abrirModalReporte(producto.vendedor_id, getVendedorNombre(producto))}
-                      title="Reportar vendedor"
+                      title="Levantar reporte"
                     >
-                      Reportar
+                      Levantar reporte
                     </button>
                     
                     {mensajeExito[producto.id] && (
@@ -729,6 +791,54 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
           </div>
         )}
       </div>
+
+      {solicitudChatActual && (
+        <div className="modal-overlay" onClick={cerrarChatSolicitud}>
+          <div className="modal-content modal-chat-solicitud" onClick={(e) => e.stopPropagation()}>
+            <h3>Mensajes de solicitud</h3>
+            <div className="chat-solicitud-resumen">
+              <p><strong>Producto:</strong> {solicitudChatActual.producto?.nombre}</p>
+              <p><strong>Vendedor:</strong> {solicitudChatActual.vendedor?.apodo || solicitudChatActual.vendedor?.nombre}</p>
+              <p><strong>Estado:</strong> {solicitudChatActual.estado}</p>
+            </div>
+            <div className="chat-solicitud-box chat-solicitud-box-modal">
+              {/* :> Aqui el comprador sigue la charla en modal y la lista ya no se estira */}
+              {cargandoChatId === solicitudChatActual.id ? (
+                <p>Cargando mensajes...</p>
+              ) : (
+                <>
+                  <div className="chat-solicitud-lista">
+                    {(mensajesSolicitud[solicitudChatActual.id] || []).length === 0 ? (
+                      <p>Arranca la charla si ocupas algo del vendedor</p>
+                    ) : (
+                      (mensajesSolicitud[solicitudChatActual.id] || []).map(mensaje => (
+                        <div key={mensaje.id} className={`chat-solicitud-item ${mensaje.emisor_id === user.id ? "mio" : "otro"}`}>
+                          <strong>{mensaje.emisor?.apodo || mensaje.emisor?.nombre || "Usuario"}</strong>
+                          <p>{mensaje.mensaje}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="chat-solicitud-form">
+                    <textarea
+                      value={nuevoMensajeSolicitud[solicitudChatActual.id] || ""}
+                      onChange={(e) => setNuevoMensajeSolicitud(prev => ({ ...prev, [solicitudChatActual.id]: e.target.value }))}
+                      placeholder="Escribe algo para el vendedor"
+                      rows={3}
+                    />
+                    <button className="btn-enviar-modal" onClick={() => enviarMensajeDeSolicitud(solicitudChatActual.id)}>
+                      Enviar mensaje
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button className="btn-cancelar" onClick={cerrarChatSolicitud}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE SOLICITUD DE PRODUCTO */}
       {modalAbierto && productoSeleccionado && (
@@ -774,19 +884,30 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
 
       {/* MODAL DE CONFIRMACION DE ENTREGA */}
       {modalEntregaAbierto && solicitudEntregando && (
-        <div className="modal-overlay" onClick={() => setModalEntregaAbierto(false)}>
-          <div className="modal-calificacion" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-calificacion-header">
-              <h3>Confirmar entrega</h3>
-              <button className="modal-close" onClick={() => setModalEntregaAbierto(false)}>×</button>
+        <div className="modal-overlay" onClick={cerrarModalEntrega}>
+          <div className="modal-entrega" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-solicitud-header">
+              <h3>Confirmar recepcion</h3>
+              <button className="modal-close" onClick={cerrarModalEntrega} disabled={confirmandoEntrega}>×</button>
             </div>
-            <div className="modal-calificacion-body">
+            <div className="modal-solicitud-body modal-entrega-body">
               <p className="producto-nombre">{solicitudEntregando.producto?.nombre}</p>
-              <p>Confirmas que recibiste este producto?</p>
+              <p className="producto-vendedor">
+                Vendedor: {solicitudEntregando.vendedor?.apodo || solicitudEntregando.vendedor?.nombre || "No disponible"}
+              </p>
+              <div className="modal-entrega-resumen">
+                <p><strong>Cantidad:</strong> {solicitudEntregando.cantidad}</p>
+                <p><strong>Estado actual:</strong> {solicitudEntregando.estado}</p>
+              </div>
+              <p className="modal-entrega-texto">
+                Confirma esta accion solo si ya recibiste el producto. Esto registrara la entrega en tu solicitud.
+              </p>
             </div>
-            <div className="modal-calificacion-footer">
-              <button className="btn-cancelar-modal" onClick={() => setModalEntregaAbierto(false)}>Cancelar</button>
-              <button className="btn-enviar-modal" onClick={() => handleMarcarEntregado(solicitudEntregando.id)}>Confirmar entrega</button>
+            <div className="modal-solicitud-footer">
+              <button className="btn-cancelar-modal" onClick={cerrarModalEntrega} disabled={confirmandoEntrega}>Cancelar</button>
+              <button className="btn-enviar-modal" onClick={() => handleMarcarEntregado(solicitudEntregando.id)} disabled={confirmandoEntrega}>
+                {confirmandoEntrega ? "Confirmando..." : "Confirmar que lo recibi"}
+              </button>
             </div>
           </div>
         </div>

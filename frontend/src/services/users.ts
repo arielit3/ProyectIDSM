@@ -23,6 +23,7 @@ export interface Usuario {
   relacion: {
     matricula: number;
     rol: Rol;
+    estado?: number;
   };
 }
 

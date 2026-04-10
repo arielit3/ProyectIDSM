@@ -63,6 +63,9 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  // :> Esto deja viva la helper de perfil sin ensuciar el panel mientras no la usamos directo aqui
+  void handleUpdateUser;
+
   //EFECTO DE CARGA INICIAL
   //Al montar el componente, se intenta obtener los datos del usuario
   // autenticado para mostrar su dashboard correspondiente

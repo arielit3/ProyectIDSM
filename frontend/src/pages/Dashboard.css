@@ -2570,6 +2570,18 @@
   animation: modalFadeIn 0.3s ease-out;
 }
 
+.modal-entrega {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbf4 100%);
+  border-radius: var(--border-radius-lg);
+  width: 90%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 1px solid rgba(171, 194, 112, 0.25);
+  box-shadow: 0 24px 44px rgba(0, 0, 0, 0.22);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
 .modal-solicitud-header {
   display: flex;
   justify-content: space-between;
@@ -2601,6 +2613,30 @@
 
 .modal-solicitud-body {
   padding: 24px;
+}
+
+.modal-entrega-body {
+  display: grid;
+  gap: 14px;
+}
+
+.modal-entrega-resumen {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--border-radius-md);
+  background: rgba(171, 194, 112, 0.12);
+  border: 1px solid rgba(171, 194, 112, 0.24);
+}
+
+.modal-entrega-resumen p,
+.modal-entrega-texto {
+  margin: 0;
+}
+
+.modal-entrega-texto {
+  color: var(--text-dark);
+  line-height: 1.55;
 }
 
 .producto-nombre {
@@ -2677,6 +2713,15 @@
   background-color: var(--primary-green-dark);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.btn-cancelar-modal:disabled,
+.btn-enviar-modal:disabled,
+.modal-close:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Boton solicitar en tarjeta */
@@ -2840,7 +2885,7 @@
   font-weight: 500;
   font-size: 0.8rem;
   transition: all 0.3s ease;
-  margin-left: 8px;
+  margin: 9px 78px;
 }
 
 .btn-reportar:hover {
@@ -3025,6 +3070,15 @@
 .btn-resolver:hover {
   background-color: #2980b9;
   transform: translateY(-2px);
+}
+
+.sancion-card .reporte-body p {
+  margin-bottom: 10px;
+}
+
+.admin-modal-textarea {
+  min-height: 110px;
+  resize: vertical;
 }
 
 .tab-badge.reportes {
@@ -3727,4 +3781,452 @@
   margin-bottom: 24px;
   padding: 0 20px;
   position: relative;
+}
+
+.chat-solicitud-box {
+  margin-top: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fafaf6;
+  padding: 12px;
+}
+
+.chat-solicitud-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.chat-solicitud-item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #ececec;
+}
+
+.chat-solicitud-item.mio {
+  background: #fff4d6;
+  border-color: #f2d38a;
+}
+
+.chat-solicitud-item.otro {
+  background: #f5f7fb;
+  border-color: #d9e1ef;
+}
+
+.chat-solicitud-item p {
+  margin: 6px 0 0;
+}
+
+.chat-solicitud-form {
+  display: grid;
+  gap: 10px;
+}
+
+.chat-solicitud-form textarea {
+  width: 100%;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* :> Esto le da un lugar fijo a las solicitudes del vendedor sin esconderlas en notificaciones */
+.vendedor-solicitudes-section {
+  margin-top: 30px;
+}
+
+.vendedor-solicitudes-section .solicitud-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+}
+
+.vendedor-solicitudes-section .solicitud-body {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.vendedor-solicitudes-section .solicitud-body p {
+  margin: 0;
+}
+
+.vendedor-solicitudes-section .solicitud-actions {
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+/* :> Este modal concentra la charla para comprador y vendedor sin alargar las cards */
+.modal-chat-solicitud {
+  max-width: 720px;
+}
+
+.chat-solicitud-resumen {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.chat-solicitud-resumen p {
+  margin: 0;
+}
+
+.chat-solicitud-box-modal {
+  margin-top: 0;
+}
+
+/* :> Aqui ordenamos mejor la vista normal del comprador para que las cards se lean mas parejas */
+.comprador-dashboard .solicitudes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  align-items: stretch;
+}
+
+.comprador-dashboard .solicitud-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  padding: 22px;
+}
+
+.comprador-dashboard .solicitud-header {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.comprador-dashboard .solicitud-header .producto-nombre {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.comprador-dashboard .solicitud-body {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.comprador-dashboard .solicitud-body p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.comprador-dashboard .solicitud-actions {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.comprador-dashboard .solicitud-actions .btn-entregar,
+.comprador-dashboard .solicitud-actions .btn-reportar {
+  width: 100%;
+  min-height: 42px;
+  margin-left: 0;
+}
+
+.comprador-dashboard .chat-solicitud-box {
+  margin-top: 6px;
+}
+
+.comprador-dashboard .productos-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  align-items: stretch;
+}
+
+.comprador-dashboard .producto-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.comprador-dashboard .producto-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+}
+
+.comprador-dashboard .producto-info h3 {
+  margin-bottom: 4px;
+  line-height: 1.35;
+  min-height: 2.8em;
+}
+
+.comprador-dashboard .producto-descripcion-container {
+  flex: 1;
+}
+
+.comprador-dashboard .producto-detalle-linea {
+  align-items: flex-start;
+}
+
+.comprador-dashboard .detalle-valor {
+  flex: 1;
+  min-width: 0;
+}
+
+.comprador-dashboard .producto-detalles {
+  align-items: stretch;
+}
+
+.comprador-dashboard .producto-precio,
+.comprador-dashboard .producto-stock {
+  flex-wrap: wrap;
+}
+
+.comprador-dashboard .producto-acciones-comprador {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.comprador-dashboard .producto-acciones-comprador .btn-solicitar,
+.comprador-dashboard .producto-acciones-comprador .btn-reportar {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+}
+
+.comprador-dashboard .producto-acciones-comprador .mensaje-tooltip {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+/* :> Estos ajustes empujan mejor el layout del comprador sin mover su look base */
+@media (max-width: 1024px) {
+  .comprador-dashboard .hero-section {
+    padding: 42px 34px;
+    margin-bottom: 42px;
+  }
+
+  .comprador-dashboard .hero-content {
+    gap: 28px;
+    align-items: center;
+  }
+
+  .comprador-dashboard .top-actions {
+    padding: 0;
+    justify-content: space-between;
+    align-items: stretch;
+  }
+
+  .comprador-dashboard .notificaciones-container {
+    flex: 1 1 260px;
+  }
+
+  .comprador-dashboard .btn-solicitar-vendedor {
+    flex: 1 1 260px;
+    text-align: center;
+  }
+
+  .comprador-dashboard .productos-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .comprador-dashboard .producto-card {
+    min-width: 0;
+  }
+
+  .comprador-dashboard .producto-info {
+    padding: 18px;
+  }
+
+  .comprador-dashboard .solicitudes-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+/* :> Aqui el panel del comprador ya se acomoda en una sola columna y deja respirar botones y tarjetas */
+@media (max-width: 768px) {
+  .comprador-dashboard {
+    padding: 12px 0 24px;
+  }
+
+  .comprador-dashboard .hero-section {
+    padding: 30px 20px;
+    margin-bottom: 28px;
+    border-radius: 22px;
+  }
+
+  .comprador-dashboard .hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 20px;
+  }
+
+  .comprador-dashboard .hero-text,
+  .comprador-dashboard .hero-image {
+    width: 100%;
+  }
+
+  .comprador-dashboard .hero-image {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: center;
+  }
+
+  .comprador-dashboard .main-logo-image {
+    max-width: 190px;
+  }
+
+  .comprador-dashboard .top-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .comprador-dashboard .notificaciones-container,
+  .comprador-dashboard .btn-solicitar-vendedor {
+    width: 100%;
+  }
+
+  .comprador-dashboard .campana-btn {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .comprador-dashboard .campana-badge {
+    top: 8px;
+    right: calc(50% - 22px);
+  }
+
+  .comprador-dashboard .notificaciones-dropdown {
+    width: 100%;
+    max-width: 100%;
+    right: auto;
+    left: 0;
+  }
+
+  .comprador-dashboard .productos-grid,
+  .comprador-dashboard .solicitudes-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .comprador-dashboard .producto-card,
+  .comprador-dashboard .solicitud-card {
+    width: 100%;
+  }
+
+  .comprador-dashboard .producto-imagen {
+    height: 220px;
+  }
+
+  .comprador-dashboard .producto-info {
+    padding: 16px;
+  }
+
+  .comprador-dashboard .producto-info h3 {
+    margin-bottom: 12px;
+  }
+
+  .comprador-dashboard .producto-detalles {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .comprador-dashboard .producto-acciones-comprador {
+    gap: 10px;
+    grid-template-columns: 1fr;
+  }
+
+  .comprador-dashboard .btn-reportar {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .comprador-dashboard .solicitud-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .comprador-dashboard .solicitud-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .comprador-dashboard .solicitud-actions button {
+    width: 100%;
+  }
+
+  .comprador-dashboard .chat-solicitud-box {
+    padding: 10px;
+  }
+
+  .comprador-dashboard .chat-solicitud-form {
+    gap: 8px;
+  }
+}
+
+/* :> En movil chico recortamos espacios para que nada se salga ni se monte */
+@media (max-width: 480px) {
+  .comprador-dashboard .hero-section {
+    padding: 24px 16px;
+    margin-bottom: 22px;
+  }
+
+  .comprador-dashboard .hero-title {
+    font-size: 1.7rem;
+  }
+
+  .comprador-dashboard .hero-description {
+    font-size: 0.95rem;
+  }
+
+  .comprador-dashboard .section-title {
+    font-size: 1.3rem;
+    margin-bottom: 18px;
+  }
+
+  .comprador-dashboard .producto-imagen {
+    height: 190px;
+  }
+
+  .comprador-dashboard .producto-info,
+  .comprador-dashboard .solicitud-card {
+    padding: 14px;
+  }
+
+  .comprador-dashboard .detalle-etiqueta {
+    min-width: 58px;
+  }
+
+  .comprador-dashboard .categoria-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .comprador-dashboard .categorias-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .comprador-dashboard .notificaciones-dropdown {
+    width: calc(100vw - 2rem);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
 }

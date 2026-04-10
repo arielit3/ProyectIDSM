@@ -88,7 +88,7 @@ const RegisterPage: React.FC = () => {
 
   const handleRecaptchaChange = (token: string | null) => {
     setRecaptchaToken(token);
-    setRecaptchaError("");
+    setRecaptchaError(token ? "" : "Valida el recaptcha para continuar");
   };
 
   // Timer para contar el tiempo de expiracion del OTP (5 minutos = 300 segundos)
@@ -239,6 +239,9 @@ const RegisterPage: React.FC = () => {
       setTiempoExpiracion(300); // 5 minutos
       setTiempoReenvio(0); // Sin cooldown al inicio
       setMensajeOTP(""); // Sin mensajes de error
+      setRecaptchaToken(null);
+      setRecaptchaError("Valida el recaptcha para continuar");
+      recaptchaRef.current?.reset();
       
       // Limpiar mensaje anterior
       setMensaje("");
@@ -281,8 +284,16 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    // :> Esto evita verificar si el recaptcha todavia no fue validado
+    if (!recaptchaToken) {
+      setRecaptchaError("Valida el recaptcha para continuar");
+      setMensajeOTP("Primero valida el recaptcha");
+      return;
+    }
+
     setCargandoOTP(true);
     setMensajeOTP("");
+    setRecaptchaError("");
 
     try {
       // Llamar al endpoint para verificar el codigo OTP
@@ -311,6 +322,9 @@ const RegisterPage: React.FC = () => {
       
       // Mostrar mensaje de exito en el modal
       setMensajeOTP("Cuenta creada correctamente, redirigiendo a login...");
+      setRecaptchaToken(null);
+      setRecaptchaError("Valida el recaptcha para continuar");
+      recaptchaRef.current?.reset();
       
       // Cerrar el modal despues de 2 segundos y redirigir a login
       setTimeout(() => {
@@ -383,6 +397,9 @@ const RegisterPage: React.FC = () => {
       setIntentosRestantes(4); // Resetear intentos
       setTiempoExpiracion(300); // Resetear timer a 5 minutos
       setTiempoReenvio(35); // Bloquear boton durante 35 segundos
+      setRecaptchaToken(null);
+      setRecaptchaError("Valida el recaptcha para continuar");
+      recaptchaRef.current?.reset();
       
     } catch (error: any) {
       console.error("Error al reenviar OTP:", error);
@@ -607,19 +624,28 @@ const RegisterPage: React.FC = () => {
                     className="inputCodigoOTP"
                   />
 
-                  {/**recaptcha */}
+                  {/* :> Esto activa el boton de verificar solo cuando el usuario valida el recaptcha */}
                   <ReCAPTCHA
                     sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY as string}
                     onChange={handleRecaptchaChange}
                     ref={recaptchaRef}
                   />
 
+                  {recaptchaError && (
+                    <div
+                      className="mensajeOTP"
+                      style={{ color: "red" }}
+                    >
+                      {recaptchaError}
+                    </div>
+                  )}
+
 
                   {/* Botones de accion */}
                   <div className="botonesOTP">
                     <button
                       type="submit"
-                      disabled={cargandoOTP || codigoOTP.length !== 6}
+                      disabled={cargandoOTP || codigoOTP.length !== 6 || !recaptchaToken}
                       className="botonVerificar"
                     >
                       {cargandoOTP ? "Verificando..." : "Verificar"}

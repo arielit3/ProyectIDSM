@@ -218,6 +218,19 @@ export interface Notificacion {
   fecha_creacion: string;
 }
 
+export interface MensajeSolicitud {
+  id: number;
+  solicitud_id: number;
+  emisor_id: number;
+  mensaje: string;
+  fecha_creacion: string;
+  emisor?: {
+    id: number;
+    nombre: string;
+    apodo: string;
+  };
+}
+
 /**
  * Crea una solicitud de producto (comprador -> vendedor)
  * @param data - Datos de la solicitud
@@ -319,6 +332,22 @@ export async function marcarTodasNotificacionesLeidas(): Promise<{ mensaje: stri
   const response = await axios.put(
     `${API_URL}/solicitudes/notificaciones/leer-todas`,
     {},
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
+export async function obtenerMensajesSolicitud(solicitudId: number): Promise<MensajeSolicitud[]> {
+  const response = await axios.get(`${API_URL}/solicitudes/${solicitudId}/mensajes`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+export async function enviarMensajeSolicitud(solicitudId: number, mensaje: string): Promise<MensajeSolicitud> {
+  const response = await axios.post(
+    `${API_URL}/solicitudes/${solicitudId}/mensajes`,
+    { mensaje },
     { headers: getAuthHeader() }
   );
   return response.data;
@@ -447,37 +476,6 @@ export async function procesarSolicitudVendedor(
   return response.data;
 }
 
-// CIFRADO DE MENSAJES (SHA-256)
-import { cifrarSHA256 } from "../utils/cifrado";
-
-export interface MensajeCifrado {
-  textoOriginal: string;  // Mensaje original
-  hash: string;           // Hash SHA-256 del mensaje
-}
-
-/**
- * Prepara un mensaje cifrado para enviar al backend
- * Utiliza SHA-256 para generar un hash del mensaje
- * @param mensaje - Texto a cifrar
- * @returns Objeto con texto original y hash
- */
-export function prepararMensajeCifrado(mensaje: string): MensajeCifrado {
-  return {
-    textoOriginal: mensaje,
-    hash: cifrarSHA256(mensaje)
-  };
-}
-
-/**
- * Verifica la integridad de un mensaje comparando su hash
- * @param mensaje - Mensaje recibido
- * @param hash - Hash almacenado previamente
- * @returns true si el mensaje no ha sido alterado
- */
-export function verificarIntegridadMensaje(mensaje: string, hash: string): boolean {
-  return cifrarSHA256(mensaje) === hash;
-}
-
 // REPORTES DE VENDEDORES - Quejas de compradores contra vendedores
 export interface ReporteVendedor {
   id: number;
@@ -490,6 +488,19 @@ export interface ReporteVendedor {
   fecha_resolucion: string | null;
   comprador_nombre?: string;
   vendedor_nombre?: string;
+}
+
+export interface SancionUsuario {
+  id: number;
+  usuario_id: number;
+  admin_id: number;
+  reporte_id: number;
+  motivo: string;
+  tipo: string;
+  activa: boolean;
+  fecha_creacion: string;
+  usuario_nombre?: string;
+  admin_nombre?: string;
 }
 
 export interface CrearReporteData {
@@ -554,12 +565,88 @@ export async function actualizarReporte(
   return response.data;
 }
 
+export async function sancionarUsuarioDesdeReporte(
+  reporteId: number,
+  tipo: string,
+  motivo: string
+): Promise<SancionUsuario> {
+  const response = await axios.post(
+    `${API_URL}/reportes/${reporteId}/sancionar`,
+    { tipo, motivo },
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
+/**
+ * Obtiene sanciones para que el admin pueda listar activas o historicas
+ * @param filtros - Filtros opcionales por estado, usuario o tipo
+ * @returns Lista de sanciones
+ */
+export async function obtenerSanciones(filtros?: {
+  activas?: boolean;
+  usuario_id?: number;
+  tipo?: string;
+}): Promise<SancionUsuario[]> {
+  const params = new URLSearchParams();
+
+  if (filtros?.activas !== undefined) {
+    params.append("activas", String(filtros.activas));
+  }
+
+  if (filtros?.usuario_id !== undefined) {
+    params.append("usuario_id", String(filtros.usuario_id));
+  }
+
+  if (filtros?.tipo) {
+    params.append("tipo", filtros.tipo);
+  }
+
+  const query = params.toString();
+  const url = query ? `${API_URL}/reportes/sanciones?${query}` : `${API_URL}/reportes/sanciones`;
+
+  const response = await axios.get(url, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+/**
+ * Obtiene una sancion puntual para usarla en detalle o en un modal
+ * @param sancionId - ID de la sancion
+ * @returns Sancion encontrada
+ */
+export async function obtenerSancionPorId(sancionId: number): Promise<SancionUsuario> {
+  const response = await axios.get(`${API_URL}/reportes/sanciones/${sancionId}`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+/**
+ * Levanta una sancion activa y permite que el admin reactive al usuario si corresponde
+ * @param sancionId - ID de la sancion
+ * @param motivo - Motivo opcional para notificar al usuario
+ * @returns Resultado de la accion
+ */
+export async function levantarSancion(
+  sancionId: number,
+  motivo?: string
+): Promise<{ id: number; usuario_id: number; reporte_id: number; tipo: string; activa: boolean; mensaje: string }> {
+  const response = await axios.put(
+    `${API_URL}/reportes/sanciones/${sancionId}/levantar`,
+    { motivo: motivo || "" },
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
 /**
  * Cuenta los reportes de un vendedor (para estadísticas)
  * @param vendedorId - ID del vendedor
  * @returns Totales de reportes (total, pendientes, resueltos)
  */
-export async function contarReportesVendedor(vendedorId: number): Promise<{ total: number; pendientes: number; resueltos: number }> {
+export async function contarReportesVendedor(vendedorId: number): Promise<{ total: number; pendientes: number; resueltos: number; sanciones: number }> {
   const response = await axios.get(`${API_URL}/reportes/vendedor/${vendedorId}/contar`, {
     headers: getAuthHeader(),
   });

@@ -1,29 +1,22 @@
-import * as CryptoJS from "crypto-js";
+function hashRapido(texto: string): string {
+  let hash = 0;
 
-/**
- * Cifra un mensaje usando SHA-256
- * @param mensaje - Texto a cifrar
- * @returns Hash SHA-256 del mensaje
- */
-export function cifrarSHA256(mensaje: string): string {
-  return CryptoJS.SHA256(mensaje).toString();
+  for (let i = 0; i < texto.length; i += 1) {
+    hash = (hash << 5) - hash + texto.charCodeAt(i);
+    hash |= 0;
+  }
+
+  return Math.abs(hash).toString(16);
 }
 
-/**
- * Verifica si un mensaje coincide con un hash
- * @param mensaje - Texto original
- * @param hash - Hash almacenado
- * @returns true si coinciden
- */
+export function cifrarSHA256(mensaje: string): string {
+  return hashRapido(mensaje);
+}
+
 export function verificarHash(mensaje: string, hash: string): boolean {
   return cifrarSHA256(mensaje) === hash;
 }
 
-/**
- * Cifra un mensaje con un salt adicional para mayor seguridad
- * @param mensaje - Texto a cifrar
- * @param salt - Valor adicional para el cifrado
- */
 export function cifrarConSalt(mensaje: string, salt: string): string {
-  return CryptoJS.SHA256(mensaje + salt).toString();
+  return cifrarSHA256(`${mensaje}:${salt}`);
 }

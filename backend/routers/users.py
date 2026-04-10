@@ -7,6 +7,7 @@ import models
 from deps import get_db, get_current_user
 from auth import hash_password
 
+#:> Este router maneja registro, lectura y cambios de perfil de usuario
 router = APIRouter(prefix="/usuarios", tags=["Users"])
 
 
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/usuarios", tags=["Users"])
 # ────────────────────────────────────────────
 
 class UsuarioCreate(BaseModel):
+    #:> Este modelo recibe todos los datos del formulario de registro
     apodo: str
     nombre: str
     correo: str
@@ -26,11 +28,13 @@ class UsuarioCreate(BaseModel):
 
 
 class CampoUpdate(BaseModel):
+    #:> Este modelo reutilizable recibe el valor nuevo en cambios simples de perfil
     valor: str  # usado en todos los PUT de perfil, incluyendo password
 
 
 # asiel: Modelo de respuesta para usuario después de crear o consultar
 class UsuarioResponse(BaseModel):
+    #:> Este modelo deja una respuesta simple de usuario para altas o consultas
     id: int
     nombre: str
     apodo: str | None
@@ -44,6 +48,7 @@ class UsuarioResponse(BaseModel):
 
 # asiel: Modelo de respuesta que incluye relación anidada
 class UsuarioResponseWithRelacion(BaseModel):
+    #:> Este modelo deja la respuesta con la relacion del usuario ya anidada
     id: int
     nombre: str
     apodo: str | None
@@ -64,6 +69,7 @@ def obtener_usuario_actual(
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    #:> Este endpoint devuelve el perfil del usuario autenticado
     """asiel: Retorna el usuario actual con su relación anidada"""
     usuario = db.query(models.Usuario).options(
         selectinload(models.Usuario.relacion)
@@ -81,7 +87,8 @@ def obtener_usuario_actual(
         "telefono": usuario.telefono,
         "relacion": {
             "matricula": usuario.relacion.matricula,
-            "rol": usuario.relacion.rol
+            "rol": usuario.relacion.rol,
+            "estado": usuario.relacion.estado
         }
     }
 
@@ -91,6 +98,7 @@ def listar_usuarios(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint deja al admin listar todos los usuarios con rol y estado
     """asiel: Lista todos los usuarios (solo administradores)"""
     if current_user.relacion.rol != "administrador":
         raise HTTPException(status_code=403, detail="No tienes permiso para listar usuarios")
@@ -110,7 +118,8 @@ def listar_usuarios(
             "telefono": usuario.telefono,
             "relacion": {
                 "matricula": usuario.relacion.matricula,
-                "rol": usuario.relacion.rol
+                "rol": usuario.relacion.rol,
+                "estado": usuario.relacion.estado
             }
         })
     
@@ -123,6 +132,7 @@ def listar_usuarios(
 
 @router.post("/", status_code=201)
 def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+    #:> Este endpoint registra un usuario nuevo y crea su acceso en usuario_relacion
     """
     Crea un nuevo usuario en la BD.
     
@@ -206,7 +216,8 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
             "telefono": nuevo_usuario.telefono or "",
             "relacion": {
                 "matricula": relacion.matricula,
-                "rol": relacion.rol
+                "rol": relacion.rol,
+                "estado": relacion.estado
             }
         }
 
@@ -228,6 +239,7 @@ def eliminar_usuario(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint deja al admin eliminar un usuario completo del sistema
     if current_user.relacion.rol != "administrador":
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar usuarios")
 
@@ -256,6 +268,7 @@ def modificar_nombre(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint cambia el nombre visible del usuario autenticado
     current_user.nombre = datos.valor
     db.commit()
     db.refresh(current_user)
@@ -268,6 +281,7 @@ def modificar_correo(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint cambia el correo del usuario si no esta repetido
     existente = db.query(models.Usuario).filter(
         models.Usuario.correo == datos.valor
     ).first()
@@ -286,6 +300,7 @@ def modificar_apodo(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint cambia el apodo del usuario autenticado
     current_user.apodo = datos.valor
     db.commit()
     db.refresh(current_user)
@@ -298,6 +313,7 @@ def modificar_telefono(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint cambia el telefono del usuario autenticado
     current_user.telefono = datos.valor
     db.commit()
     db.refresh(current_user)
@@ -310,7 +326,9 @@ def modificar_password(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint cambia la contrasena del usuario aplicando hash antes de guardar
     current_user.relacion.password = hash_password(datos.valor)
     db.commit()
     db.refresh(current_user)
     return {"mensaje": "Contraseña actualizada correctamente"}
+

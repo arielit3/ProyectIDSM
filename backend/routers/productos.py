@@ -5,10 +5,11 @@ from pydantic import BaseModel
 import os
 import shutil
 import uuid
-import json
 from typing import Optional
 import models
 from deps import get_db, get_current_user
+
+#:> Este router maneja publicaciones, favoritos y consultas de productos
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
@@ -19,6 +20,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # MODELOS PYDANTIC
 class ProductoCreate(BaseModel):
+    #:> Este modelo representa un producto completo cuando se arma desde datos tipados
     """Modelo para la creación de un producto"""
     nombre: str
     descripcion: str
@@ -29,6 +31,7 @@ class ProductoCreate(BaseModel):
 
 
 class ProductoUpdate(BaseModel):
+    #:> Este modelo recibe cambios parciales al editar un producto
     """Modelo para la actualización parcial de un producto"""
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
@@ -50,6 +53,7 @@ async def crear_producto(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint crea un producto nuevo del vendedor autenticado
     """
     Crea un nuevo producto con imagen opcional.
     
@@ -102,6 +106,7 @@ def listar_mis_productos(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint devuelve todos los productos del vendedor autenticado
     """
     Obtiene todos los productos del vendedor actual.
     
@@ -123,6 +128,7 @@ def listar_productos_vendedor(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint devuelve los productos visibles de un vendedor especifico
     """
     Obtiene productos VISIBLES de un vendedor específico.
     
@@ -144,6 +150,7 @@ def listar_todos_productos(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint devuelve todos los productos activos para vista general del comprador
     """
     Obtiene todos los productos visibles con información del vendedor.
     
@@ -192,6 +199,7 @@ def actualizar_producto(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint deja al vendedor editar un producto que le pertenece
     """
     Actualiza un producto (solo el dueño puede hacerlo).
     
@@ -239,6 +247,7 @@ def eliminar_producto(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint borra un producto del vendedor dueño
     """
     Elimina un producto permanentemente (solo el dueño puede hacerlo).
     
@@ -282,6 +291,7 @@ def toggle_producto_visibilidad(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint alterna si un producto esta visible o oculto
     """
     Alterna la visibilidad del producto (ocultar/publicar).
     
@@ -317,6 +327,7 @@ def agregar_favorito(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint deja al usuario marcar un producto como favorito
     """
     Agrega un producto a favoritos del usuario actual y notifica al vendedor.
     
@@ -355,13 +366,15 @@ def agregar_favorito(
         db.add(favorito)
         
         #NOTIFICAR AL VENDEDOR
-        # Crear notificación para que el vendedor sepa que alguien marcó su producto como favorito
+        #:> Esta notificacion avisa al vendedor que su producto fue marcado como favorito.
+        #:> Solo se guarda la referencia directa al producto, en lugar de meter datos estructurados en JSON.
+        #:> Eso mantiene la tabla notificaciones mas limpia y consistente con el modelo en 3FN.
         notificacion = models.Notificacion(
             usuario_id=producto.vendedor_id,
             titulo="Nuevo favorito",
             mensaje=f"{current_user.apodo or current_user.nombre} marcó tu producto '{producto.nombre}' como favorito",
             tipo="favorito",
-            data=json.dumps({"producto_id": producto_id, "comprador_id": current_user.id})
+            producto_id=producto_id
         )
         db.add(notificacion)
         
@@ -380,6 +393,7 @@ def obtener_favoritos(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint devuelve la lista de favoritos del usuario autenticado
     """
     Obtiene todos los favoritos del usuario actual con detalles completos del producto.
     
@@ -437,6 +451,7 @@ def quitar_favorito(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    #:> Este endpoint quita un producto de la lista de favoritos del usuario
     """
     Elimina un producto de favoritos del usuario actual.
     

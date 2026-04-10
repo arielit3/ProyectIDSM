@@ -3,11 +3,14 @@ import { type Usuario } from "../services/users";
 import { 
   obtenerSolicitudesVendedor, 
   procesarSolicitudVendedor,
-  prepararMensajeCifrado,
   obtenerTodosReportes,
   actualizarReporte,
+  sancionarUsuarioDesdeReporte,
+  obtenerSanciones,
+  levantarSancion,
   type SolicitudVendedor,
-  type ReporteVendedor
+  type ReporteVendedor,
+  type SancionUsuario
 } from "../services/products";
 import { IconoCheck, IconoX } from "../components/Iconos";
 import "./Dashboard.css";
@@ -29,10 +32,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // ESTADOS DEL COMPONENTE
   const [solicitudesVendedor, setSolicitudesVendedor] = useState<SolicitudVendedor[]>([]); //lista de solicitudes de usuarios que quieren ser vendedores
   const [reportes, setReportes] = useState<ReporteVendedor[]>([]); //Lista de reportes contra vendedores
+  const [sanciones, setSanciones] = useState<SancionUsuario[]>([]); //Lista de sanciones para gestionarlas desde el panel
   const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false); //EStados de carga para mostrar indicadores de carga
   const [cargandoReportes, setCargandoReportes] = useState(false);
+  const [cargandoSanciones, setCargandoSanciones] = useState(false);
+  const [solicitudesPendientesResumen, setSolicitudesPendientesResumen] = useState(0);
+  const [reportesPendientesResumen, setReportesPendientesResumen] = useState(0);
+  const [sancionesActivasResumen, setSancionesActivasResumen] = useState(0);
   const [tabActiva, setTabActiva] = useState<string>("usuarios"); //Pestaña activa del dashboard, puede ser usuarios, solicitudes o reportes
   const [filtroReporte, setFiltroReporte] = useState<string>("todos"); //Filtro de los reportes, puede ser todos, pendientes, resueltos o rechazados
+  const [filtroSancion, setFiltroSancion] = useState<string>("activas");
 
   // ESTADOS PARA MODALES
   //Modal de respuesta a solicitudes de vendedor
@@ -43,6 +52,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [modalReporteAbierto, setModalReporteAbierto] = useState(false);
   const [reporteActual, setReporteActual] = useState<ReporteVendedor | null>(null);
   const [respuestaReporte, setRespuestaReporte] = useState("");
+  const [tipoSancion, setTipoSancion] = useState("advertencia");
+  const [motivoSancion, setMotivoSancion] = useState("");
+  const [modalLevantarSancionAbierto, setModalLevantarSancionAbierto] = useState(false);
+  const [sancionActual, setSancionActual] = useState<SancionUsuario | null>(null);
+  const [motivoLevantarSancion, setMotivoLevantarSancion] = useState("");
   
   // Modal de mensajes
   const [modalMensaje, setModalMensaje] = useState<{
@@ -68,7 +82,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setRespuestaAdmin("");
     setModalRespuestaAbierto(true);
   };
-  //Envia la respuesta del admin para aprobar o rechazar la solicitud de vendedor, se cifra la respuesta antes de enviarla
+  //Envia la respuesta del admin para aprobar o rechazar la solicitud de vendedor
   const enviarRespuesta = async () => {
     if (!solicitudActual) return;
     if (respuestaAdmin.trim() === "") {
@@ -77,18 +91,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
     
     try {
-      //Cifrado de SHA-256 de la respuesta del admin para mayor seguridad, se envia el texto original
-      //para que el backend pueda verificarlo y almacenarlo de forma segura sin exponer la respuesta en texto plano en la base de datos
-      const respuestaCifrada = prepararMensajeCifrado(respuestaAdmin);
-      //Procesa la solicitud la aprueba o la rechaza
       await procesarSolicitudVendedor(
         solicitudActual.id, 
         solicitudActual.accion, 
-        respuestaCifrada.textoOriginal
+        respuestaAdmin
       );
       
       mostrarMensaje("Exito", `Solicitud ${solicitudActual.accion === "aprobado" ? "aprobada" : "rechazada"} correctamente`, "success");
       await cargarSolicitudesVendedor(); //recargar la lista
+      await cargarResumenPanel();
       onListarUsuarios(); //actualiza la lista de usuarios para reflejar los cambios de rol
       setModalRespuestaAbierto(false);
       setSolicitudActual(null);
@@ -99,11 +110,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Funciones para reportes
   const abrirModalReporte = (reporte: ReporteVendedor) => {
+    // :> Aqui dejamos listo el modal para revisar y sancionar sin estar limpiando mano cada rato
     setReporteActual(reporte);
     setRespuestaReporte("");
+    setTipoSancion("advertencia");
+    setMotivoSancion("");
     setModalReporteAbierto(true);
   };
-  //Procesa un reporte marcandolo como resuelto o rechazado, se envia una respuesta del admin que se cifra antes de enviarla para mayor seguridad
+  //Procesa un reporte marcandolo como resuelto o rechazado
   const procesarReporte = async (nuevoEstado: string) => {
     if (!reporteActual) return;
     
@@ -117,11 +131,64 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       );
       
       await cargarReportes(); //Recarga la lista de reportes
+      await cargarResumenPanel();
       setModalReporteAbierto(false);
       setReporteActual(null);
       setRespuestaReporte("");
     } catch (error: any) {
       mostrarMensaje("Error", error.message || "Error al procesar reporte", "error");
+    }
+  };
+
+  const aplicarSancion = async () => {
+    // :> Esto ya baja una sancion formal desde el mismo modal del reporte
+    if (!reporteActual) return;
+    if (!motivoSancion.trim()) {
+      mostrarMensaje("Error", "Escribe el mensaje o motivo de la sancion", "error");
+      return;
+    }
+
+    try {
+      await sancionarUsuarioDesdeReporte(reporteActual.id, tipoSancion, motivoSancion);
+      mostrarMensaje(
+        "Sancion aplicada",
+        tipoSancion === "advertencia"
+          ? "La advertencia se guardo y el vendedor sigue pudiendo entrar"
+          : "La cuenta quedo bloqueada y ya no podra iniciar sesion",
+        "success"
+      );
+      setMotivoSancion("");
+      onListarUsuarios();
+      await cargarSanciones();
+      await cargarReportes();
+      await cargarResumenPanel();
+    } catch (error: any) {
+      mostrarMensaje("Error", error.response?.data?.detail || "No se pudo aplicar la sancion", "error");
+    }
+  };
+
+  const abrirModalLevantarSancion = (sancion: SancionUsuario) => {
+    // :> Aqui dejamos elegida la sancion para levantarla sin perder el contexto
+    setSancionActual(sancion);
+    setMotivoLevantarSancion("");
+    setModalLevantarSancionAbierto(true);
+  };
+
+  const confirmarLevantarSancion = async () => {
+    // :> Esto levanta la sancion y refresca panel y usuarios para que se vea el cambio luego luego
+    if (!sancionActual) return;
+
+    try {
+      await levantarSancion(sancionActual.id, motivoLevantarSancion);
+      mostrarMensaje("Sancion levantada", "El usuario ya puede volver a quedar habilitado", "success");
+      setModalLevantarSancionAbierto(false);
+      setSancionActual(null);
+      setMotivoLevantarSancion("");
+      onListarUsuarios();
+      await cargarSanciones();
+      await cargarResumenPanel();
+    } catch (error: any) {
+      mostrarMensaje("Error", error.response?.data?.detail || "No se pudo levantar la sancion", "error");
     }
   };
 
@@ -156,29 +223,75 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, [filtroReporte]);
 
+  const cargarSanciones = useCallback(async () => {
+    try {
+      setCargandoSanciones(true);
+      const data = await obtenerSanciones({
+        activas: filtroSancion === "activas" ? true : undefined,
+      });
+      setSanciones(data);
+    } catch (error) {
+      console.error("Error al cargar sanciones:", error);
+      mostrarMensaje("Error", "No se pudieron cargar las sanciones", "error");
+    } finally {
+      setCargandoSanciones(false);
+    }
+  }, [filtroSancion]);
+
+  const cargarResumenPanel = useCallback(async () => {
+    // :> Esto trae los numeros del panel apenas abre para que los badges salgan desde el inicio
+    try {
+      const [solicitudesData, reportesData, sancionesData] = await Promise.all([
+        obtenerSolicitudesVendedor(),
+        obtenerTodosReportes("pendiente"),
+        obtenerSanciones({ activas: true }),
+      ]);
+
+      setSolicitudesPendientesResumen(
+        solicitudesData.filter((solicitud) => solicitud.estado === "pendiente").length
+      );
+      setReportesPendientesResumen(reportesData.length);
+      setSancionesActivasResumen(sancionesData.length);
+    } catch (error) {
+      console.error("Error al cargar resumen del panel admin:", error);
+    }
+  }, []);
+
   // Cargar datos al montar el componente 
+  useEffect(() => {
+    onListarUsuarios();
+    cargarResumenPanel();
+  }, [onListarUsuarios, cargarResumenPanel]);
+
   useEffect(() => {
     if (tabActiva === "solicitudes") {
       cargarSolicitudesVendedor();
     } else if (tabActiva === "reportes") {
       cargarReportes();
+    } else if (tabActiva === "sanciones") {
+      cargarSanciones();
     } else if (tabActiva === "usuarios") {
       onListarUsuarios();
     }
-  }, [tabActiva, cargarSolicitudesVendedor, cargarReportes, onListarUsuarios]);
+  }, [tabActiva, cargarSolicitudesVendedor, cargarReportes, cargarSanciones, onListarUsuarios]);
 
   // CALCULOS PARA ESTADISTICAS
   const totalUsuarios = usuarios.length; 
   const totalVendedores = usuarios.filter(u => u.relacion?.rol === "vendedor").length;
   const totalClientes = usuarios.filter(u => u.relacion?.rol === "cliente").length;
-  const solicitudesPendientes = solicitudesVendedor.filter(s => s.estado === "pendiente").length;
-  const reportesPendientes = reportes.filter(r => r.estado === "pendiente").length;
+  const solicitudesPendientes = solicitudesPendientesResumen;
+  const reportesPendientes = reportesPendientesResumen;
+  const sancionesActivas = sancionesActivasResumen;
   //Convierte el codigo de rol a un nombre legible para mostrar en la tabla de usuarios
   const getRolNombre = (rol: string | undefined) => {
     if (rol === "administrador") return "Administrador";
     if (rol === "vendedor") return "Vendedor";
     if (rol === "cliente") return "Cliente";
     return "Sin rol";
+  };
+
+  const getEstadoNombre = (estado?: number) => {
+    return estado === 0 ? "Inactivo" : "Activo";
   };
 
   // RENDERIZADO DEL COMPONENTE
@@ -252,6 +365,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <span className="tab-badge reportes">{reportesPendientes}</span>
           )}
         </button>
+        <button 
+          className={`tab-btn ${tabActiva === "sanciones" ? "active" : ""}`}
+          onClick={() => setTabActiva("sanciones")}
+        >
+          Sanciones
+          {sancionesActivas > 0 && (
+            <span className="tab-badge reportes">{sancionesActivas}</span>
+          )}
+        </button>
       </div>
 
       {/* PANEL DE USUARIOS */}
@@ -271,6 +393,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <th>Telefono</th>
                   <th>Matricula</th>
                   <th>Rol</th>
+                  <th>Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -287,6 +410,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {getRolNombre(u.relacion?.rol)}
                       </span>
                     </td>
+                    <td>{getEstadoNombre(u.relacion?.estado)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -430,6 +554,64 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
+      {tabActiva === "sanciones" && (
+        <div className="admin-section">
+          <div className="section-header">
+            <h2>Sanciones de Usuarios</h2>
+            <div className="filtros-reportes">
+              <button 
+                className={`filtro-btn ${filtroSancion === "activas" ? "active" : ""}`}
+                onClick={() => setFiltroSancion("activas")}
+              >
+                Activas
+              </button>
+              <button 
+                className={`filtro-btn ${filtroSancion === "todas" ? "active" : ""}`}
+                onClick={() => setFiltroSancion("todas")}
+              >
+                Todas
+              </button>
+            </div>
+          </div>
+
+          {cargandoSanciones ? (
+            <div className="empty-state">Cargando sanciones...</div>
+          ) : sanciones.length === 0 ? (
+            <div className="empty-state">No hay sanciones para mostrar</div>
+          ) : (
+            <div className="reportes-grid">
+              {sanciones.map(sancion => (
+                <div key={sancion.id} className={`reporte-card sancion-card ${sancion.activa ? "pendiente" : "rechazado"}`}>
+                  <div className="reporte-header">
+                    <div>
+                      <span className="reporte-vendedor">Usuario: {sancion.usuario_nombre || `#${sancion.usuario_id}`}</span>
+                      <span className="reporte-comprador">Aplicada por: {sancion.admin_nombre || `#${sancion.admin_id}`}</span>
+                    </div>
+                    <span className={`estado-badge ${sancion.activa ? "pendiente" : "rechazado"}`}>
+                      {sancion.activa ? "Activa" : "Levantada"}
+                    </span>
+                  </div>
+                  <div className="reporte-body">
+                    <p><strong>Tipo:</strong> {sancion.tipo}</p>
+                    <p><strong>Motivo:</strong></p>
+                    <p className="reporte-motivo">{sancion.motivo}</p>
+                    <p><strong>Fecha:</strong> {new Date(sancion.fecha_creacion).toLocaleString()}</p>
+                  </div>
+
+                  {sancion.activa && (
+                    <div className="reporte-actions">
+                      <button className="btn-resolver" onClick={() => abrirModalLevantarSancion(sancion)}>
+                        Levantar sancion
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* MODAL DE RESPUESTA DEL ADMIN (Solicitudes) */}
       {modalRespuestaAbierto && solicitudActual && (
         <div className="modal-overlay" onClick={() => setModalRespuestaAbierto(false)}>
@@ -441,9 +623,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onChange={(e) => setRespuestaAdmin(e.target.value)}
               placeholder="Escribe tu respuesta..."
               rows={4}
-              style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd", fontFamily: "inherit" }}
+              className="admin-modal-textarea"
             />
-            <div className="modal-actions" style={{ display: "flex", gap: "12px", marginTop: "20px", justifyContent: "flex-end" }}>
+            <div className="modal-actions">
               <button className="btn-cancelar" onClick={() => setModalRespuestaAbierto(false)}>Cancelar</button>
               <button className="btn-guardar" onClick={enviarRespuesta}>Enviar</button>
             </div>
@@ -463,21 +645,78 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="reporte-motivo">{reporteActual.motivo}</p>
             </div>
             
-            <div className="form-group" style={{ marginTop: "20px" }}>
-              <label>Respuesta del administrador (opcional):</label>
+            <div className="form-group">
+              <label>Respuesta del administrador para el reporte</label>
               <textarea
                 value={respuestaReporte}
                 onChange={(e) => setRespuestaReporte(e.target.value)}
-                placeholder="Ej: Hemos revisado el reporte y tomaremos las medidas correspondientes..."
+                placeholder="Aqui puedes dejar contexto para quien reporto"
                 rows={3}
-                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd", fontFamily: "inherit", marginTop: "8px" }}
+                className="admin-modal-textarea"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Tipo de sancion</label>
+              <select
+                value={tipoSancion}
+                onChange={(e) => setTipoSancion(e.target.value)}
+              >
+                <option value="advertencia">Advertencia</option>
+                <option value="bloqueo">Bloqueo</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Mensaje o motivo</label>
+              <textarea
+                value={motivoSancion}
+                onChange={(e) => setMotivoSancion(e.target.value)}
+                placeholder={
+                  tipoSancion === "advertencia"
+                    ? "Este texto le llegara al vendedor como aviso del admin"
+                    : "Este texto se usara como motivo formal del bloqueo"
+                }
+                rows={3}
+                className="admin-modal-textarea"
               />
             </div>
             
-            <div className="modal-actions" style={{ display: "flex", gap: "12px", marginTop: "20px", justifyContent: "flex-end" }}>
+            <div className="modal-actions">
               <button className="btn-cancelar" onClick={() => setModalReporteAbierto(false)}>Cancelar</button>
+              <button className="btn-guardar" onClick={aplicarSancion}>Aplicar sancion</button>
               <button className="btn-rechazar" onClick={() => procesarReporte("rechazado")}>Rechazar Reporte</button>
               <button className="btn-aprobar" onClick={() => procesarReporte("resuelto")}>Marcar como Resuelto</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalLevantarSancionAbierto && sancionActual && (
+        <div className="modal-overlay" onClick={() => setModalLevantarSancionAbierto(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Levantar Sancion</h3>
+            <div className="reporte-detalle">
+              <p><strong>Usuario:</strong> {sancionActual.usuario_nombre || `#${sancionActual.usuario_id}`}</p>
+              <p><strong>Tipo:</strong> {sancionActual.tipo}</p>
+              <p><strong>Motivo actual:</strong></p>
+              <p className="reporte-motivo">{sancionActual.motivo}</p>
+            </div>
+
+            <div className="form-group">
+              <label>Motivo para levantar la sancion</label>
+              <textarea
+                value={motivoLevantarSancion}
+                onChange={(e) => setMotivoLevantarSancion(e.target.value)}
+                placeholder="Cuenta rapido por que se levanta la sancion"
+                rows={3}
+                className="admin-modal-textarea"
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-cancelar" onClick={() => setModalLevantarSancionAbierto(false)}>Cancelar</button>
+              <button className="btn-guardar" onClick={confirmarLevantarSancion}>Confirmar</button>
             </div>
           </div>
         </div>

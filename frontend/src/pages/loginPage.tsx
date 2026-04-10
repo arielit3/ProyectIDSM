@@ -9,13 +9,12 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   //ESTADOS DEL COMPONENTE
-  const [email, setEmail] = React.useState(""); //correo electrónico ingresado por el usuario
-  const [password, setPassword] = React.useState("");//contraseña ingresada por el usuario
-  const [mensaje, setMensaje] = React.useState(""); //mensaje de error o éxito para mostrar al usuario después de intentar iniciar sesión
+  const [email, setEmail] = React.useState(""); //correo electronico ingresado por el usuario
+  const [password, setPassword] = React.useState("");//contrasena ingresada por el usuario
+  const [mensaje, setMensaje] = React.useState(""); //mensaje de error o exito para mostrar al usuario despues de intentar iniciar sesion
   const [mensajeColor, setMensajeColor] = React.useState("red");
 
   //FUNCIONE DE ENVIO
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
@@ -29,7 +28,8 @@ const LoginPage: React.FC = () => {
       // Redirigir a dashboard
       navigate("/dashboard");
     } catch (error: any) {
-      setMensaje("Credenciales inválidas");
+      const detalleError = error.response?.data?.detail || "Credenciales invalidas";
+      setMensaje(detalleError);
       setMensajeColor("red");
       console.error("Error en login:", error);
     }
@@ -43,7 +43,7 @@ const LoginPage: React.FC = () => {
           <img src="/ToroEatsLogo.png" alt="Toro Eats Logo" className="loginLogo" />
         </div>
         <div className="loginHeader">
-          <h1>Iniciar Sesión</h1>
+          <h1>Iniciar Sesion</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="loginForm">
@@ -58,7 +58,7 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className="inputsLogin">
-            <label htmlFor="password">Contraseña</label>
+            <label htmlFor="password">Contrasena</label>
             <input
               type="password"
               id="password"
@@ -68,16 +68,16 @@ const LoginPage: React.FC = () => {
           </div>
 
           <button type="submit" className="loginButton">
-            Iniciar Sesión
+            Iniciar Sesion
           </button>
 
           <div className="registerSection">
-            <p className="registerText">¿No tienes cuenta?</p>
+            <p className="registerText">No tienes cuenta?</p>
             <button
               className="registerButton"
               onClick={() => navigate("/register")}
             >
-              Regístrate
+              Registrate
             </button>
           </div>
 

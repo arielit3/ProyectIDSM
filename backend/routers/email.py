@@ -14,6 +14,7 @@ from deps import get_db
 
 load_dotenv()
 
+#:> Este router maneja envio de correos utilitarios y el flujo OTP de registro
 router = APIRouter(tags=["email"])
 
 # Correo de soporte para desbloqueos y solicitudes de ayuda
@@ -21,20 +22,24 @@ SOPORTE_EMAIL = "toritoseats@gmail.com"
 
 
 class EmailRequest(BaseModel):
+    #:> Este modelo recibe un correo destino para pruebas de envio
     email: EmailStr
 
 
 class SendOTPRequest(BaseModel):
+    #:> Este modelo recibe el correo al que se le mandara el OTP
     email: EmailStr
 
 
 class VerifyOTPRequest(BaseModel):
+    #:> Este modelo recibe correo y codigo para validar el OTP guardado
     email: EmailStr
     codigo: str
 
 
 @router.post("/enviar-correo-prueba")
 def enviar_correo_prueba(request: EmailRequest):
+    #:> Este endpoint solo prueba que el servidor SMTP este mandando correos
     """
     Este endpoint es solo para pruebas de envio de correo a una direccion especifica,
     se usan las credenciales de EMAIL_USER y EMAIL_PASS para autenticar con el servidor SMTP
@@ -92,6 +97,7 @@ def enviar_correo_prueba(request: EmailRequest):
 
 @router.post("/enviar-otp")
 def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
+    #:> Este endpoint genera un OTP, lo guarda en BD y lo manda por correo
     """
     Genera un codigo OTP de 6 digitos y lo envia por correo al email especificado.
     
@@ -208,6 +214,7 @@ def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
 
 @router.post("/verificar-otp")
 def verificar_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
+    #:> Este endpoint revisa si el codigo recibido sigue vigente y si coincide con el guardado
     """
     Valida el codigo OTP ingresado por el usuario.
     

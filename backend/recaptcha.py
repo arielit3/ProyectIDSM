@@ -9,6 +9,8 @@ load_dotenv()  # Carga variables de entorno
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 
 async def verify_recaptcha(token: str):
+    #:> Este helper valida un token de Google reCAPTCHA contra el servicio oficial
+    #:> Se puede reutilizar en flujos sensibles si luego deciden prender esa capa desde backend
     """
     Verifica que el token de reCAPTCHA sea válido
     """
