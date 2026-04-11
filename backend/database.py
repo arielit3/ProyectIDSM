@@ -8,12 +8,15 @@ import  os
 #:> Base sirve como clase madre para todos los modelos
 # Esto establece la conexion con la bd
 DATABASE_URL = os.getenv("DATABASE_URL")
-#para que la conexion sea exitosa, es recomendable 
-# que el usuario de pgadmin sea postgres y su contrasenia igual
 
-# Corrección para compatibilidad con Render/SQLAlchemy
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+if DATABASE_URL:
+    # Corrección para compatibilidad con SQLAlchemy (cambiar postgres:// por postgresql://)
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
+    # Forzar sslmode=require para conexiones externas desde Railway a Render
+    if "sslmode=" not in DATABASE_URL:
+        DATABASE_URL += "?sslmode=require" if "?" not in DATABASE_URL else "&sslmode=require"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
