@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 import secrets
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 import models
 from deps import get_db
@@ -36,6 +36,37 @@ class VerifyOTPRequest(BaseModel):
     email: EmailStr
     codigo: str
 
+def _enviar_email_base(destinatario: str, asunto: str, cuerpo: str):
+    #:> Funcion interna para centralizar el envio y evitar duplicar logica SMTP
+    email_user = os.getenv("EMAIL_USER")
+    email_pass = os.getenv("EMAIL_PASS")
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com").strip()
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+
+    if not email_user or not email_pass:
+        raise HTTPException(status_code=500, detail="Credenciales de email no configuradas")
+
+    message = MIMEMultipart()
+    message["From"] = email_user
+    message["To"] = destinatario
+    message["Subject"] = asunto
+    message.attach(MIMEText(cuerpo, "plain"))
+
+    try:
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
+                server.login(email_user, email_pass)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
+                server.starttls()
+                server.login(email_user, email_pass)
+                server.send_message(message)
+    except smtplib.SMTPAuthenticationError:
+        raise HTTPException(status_code=401, detail="Error de autenticacion con Gmail")
+    except OSError:
+        raise HTTPException(status_code=503, detail=f"Error de red: Puerto {smtp_port} bloqueado por el hosting.")
+
 
 @router.post("/enviar-correo-prueba")
 def enviar_correo_prueba(request: EmailRequest):
@@ -46,50 +77,22 @@ def enviar_correo_prueba(request: EmailRequest):
     y asi enviar el correo de prueba a la direccion especificada en el request
     """
     try:
-        # Obtener credenciales de variables de entorno
-        email_user = os.getenv("EMAIL_USER")
-        email_pass = os.getenv("EMAIL_PASS")
-
-        if not email_user or not email_pass:
-            raise HTTPException(
-                status_code=500,
-                detail="Credenciales de email no configuradas"
-            )
-
-        # Configuracion del servidor SMTP
-        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com").strip()
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        print(f"DEBUG: Intentando prueba con {smtp_server}:{smtp_port}...")
-
-        # Crear el mensaje
-        message = MIMEMultipart()
-        message["From"] = email_user
-        message["To"] = request.email
-        message["Subject"] = "Prueba de envio"
-
-        # Cuerpo del correo
-        body = "q rollo pa, soy fastapi y te estoy enviando este correo de prueba"
-        message.attach(MIMEText(body, "plain"))
-
-        # Conectar y enviar el correo
-        if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
-                server.set_debuglevel(1)  # Activa logs detallados en la consola
-                server.login(email_user, email_pass)
-                server.send_message(message)
-        else:
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
-                server.set_debuglevel(1)  # Activa logs detallados en la consola
-                server.starttls()
-                server.login(email_user, email_pass)
-                server.send_message(message)
-
+        _enviar_email_base(
+            request.email, 
+            "Prueba de envio", 
+            "q rollo pa, soy fastapi y te estoy enviando este correo de prueba"
+        )
         return {"status": "sent"}
 
     except smtplib.SMTPAuthenticationError:
         raise HTTPException(
             status_code=401,
             detail="Error de autenticacion con el servidor SMTP"
+        )
+    except OSError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Error de red: El servidor no puede alcanzar el puerto {smtp_port}. Intenta usar el puerto 465 en las variables de entorno."
         )
     except smtplib.SMTPException as e:
         raise HTTPException(
@@ -217,6 +220,11 @@ def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=401,
             detail="Error de autenticacion con el servidor SMTP"
+        )
+    except OSError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Error de red al enviar OTP: No se pudo conectar al servidor de correo. Verifica que el puerto {smtp_port} este permitido."
         )
     except smtplib.SMTPException as e:
         raise HTTPException(
