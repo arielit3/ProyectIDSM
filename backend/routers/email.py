@@ -97,9 +97,11 @@ def enviar_correo_prueba(request: EmailRequest):
             detail=f"Error SMTP: {str(e)}"
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc() # Esto imprime el error detallado en la consola de Railway
         raise HTTPException(
             status_code=500,
-            detail=f"Error al enviar el correo: {str(e)}"
+            detail=f"Error al enviar el correo ({type(e).__name__}): {str(e)}"
         )
 
 
@@ -222,9 +224,11 @@ def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
             detail=f"Error SMTP: {str(e)}"
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc() # Esto imprime el error detallado en la consola de Railway
         raise HTTPException(
             status_code=500,
-            detail=f"Error al enviar el OTP: {str(e)}"
+            detail=f"Error al enviar el OTP ({type(e).__name__}): {str(e)}"
         )
 
 
