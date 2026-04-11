@@ -57,8 +57,9 @@ def enviar_correo_prueba(request: EmailRequest):
             )
 
         # Configuracion del servidor SMTP
-        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-        smtp_port = int(os.getenv("SMTP_PORT", 587))
+        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com").strip()
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        print(f"DEBUG: Intentando prueba con {smtp_server}:{smtp_port}...")
 
         # Crear el mensaje
         message = MIMEMultipart()
@@ -72,11 +73,11 @@ def enviar_correo_prueba(request: EmailRequest):
 
         # Conectar y enviar el correo
         if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10) as server:
                 server.login(email_user, email_pass)
                 server.send_message(message)
         else:
-            with smtplib.SMTP(smtp_server, smtp_port) as server:
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
                 server.starttls()
                 server.login(email_user, email_pass)
                 server.send_message(message)
@@ -177,8 +178,9 @@ def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
             )
         
         # Configuracion del servidor SMTP
-        smtp_server = "smtp.gmail.com"
-        smtp_port = 587
+        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com").strip()
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        print(f"DEBUG: Enviando OTP a {request.email} via {smtp_server}:{smtp_port}...")
         
         # Crear el mensaje de correo
         message = MIMEMultipart()
@@ -191,10 +193,15 @@ def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
         message.attach(MIMEText(body, "plain"))
         
         # Conectar y enviar el correo
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(email_user, email_pass)
-            server.send_message(message)
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10) as server:
+                server.login(email_user, email_pass)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+                server.starttls()
+                server.login(email_user, email_pass)
+                server.send_message(message)
         
         return {"status": "sent"}
     
