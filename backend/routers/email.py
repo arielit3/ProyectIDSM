@@ -57,8 +57,8 @@ def enviar_correo_prueba(request: EmailRequest):
             )
 
         # Configuracion del servidor SMTP
-        smtp_server = "smtp.gmail.com"
-        smtp_port = 587
+        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", 587))
 
         # Crear el mensaje
         message = MIMEMultipart()
