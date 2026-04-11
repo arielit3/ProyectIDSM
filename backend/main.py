@@ -12,12 +12,13 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 from database import Base, engine
 import models
 
-#:> Este script crea las tablas declaradas en models usando el engine configurado
-
-#Creamos bd en base a modelos
-print("Creando tablas en la base de datos...")
-Base.metadata.create_all(bind=engine)
-print("Listo.")
+@app.on_event("startup")
+def startup_event():
+    #:> Este script crea las tablas declaradas en models usando el engine configurado
+    # Al ponerlo aqui, nos aseguramos de que el proceso de inicio sea ordenado
+    print("Creando tablas en la base de datos...")
+    Base.metadata.create_all(bind=engine)
+    print("Base de datos lista para recibir conexiones.")
 
 
 # CONFIGURACION DE CORS DINAMICA
