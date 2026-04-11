@@ -26,6 +26,7 @@ PRODUCTION_ORIGINS = [
     # "https://www.tudominio.com",
     # "https://app.tudominio.com",
     "https://toroeats.vercel.app/",
+    "https://toroeats-6fzayokyd-brandon-asiel-guevara-reyes-projects.vercel.app/",
 ]
 
 # Detecta si esta en desarrollo o produccion
