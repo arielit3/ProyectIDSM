@@ -36,16 +36,18 @@ class VerifyOTPRequest(BaseModel):
     email: EmailStr
     codigo: str
 
-def _enviar_email_base(destinatario: str, asunto: str, cuerpo: str):
+def _enviar_email_base(destinatario: str, asunto: str, cuerpo: str, timeout: int = 15):
     #:> Funcion interna para centralizar el envio y evitar duplicar logica SMTP
     email_user = os.getenv("EMAIL_USER")
     email_pass = os.getenv("EMAIL_PASS")
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com").strip()
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_port = int(os.getenv("SMTP_PORT", "465"))
 
     if not email_user or not email_pass:
         raise HTTPException(status_code=500, detail="Credenciales de email no configuradas")
 
+    print(f"DEBUG: Intentando envio a {destinatario} via {smtp_server}:{smtp_port}...")
+    
     message = MIMEMultipart()
     message["From"] = email_user
     message["To"] = destinatario
@@ -54,18 +56,24 @@ def _enviar_email_base(destinatario: str, asunto: str, cuerpo: str):
 
     try:
         if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=timeout) as server:
                 server.login(email_user, email_pass)
                 server.send_message(message)
         else:
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=timeout) as server:
                 server.starttls()
                 server.login(email_user, email_pass)
                 server.send_message(message)
+        print(f"DEBUG: Correo enviado exitosamente a {destinatario}")
     except smtplib.SMTPAuthenticationError:
         raise HTTPException(status_code=401, detail="Error de autenticacion con Gmail")
+    except smtplib.SMTPException as e:
+        raise HTTPException(status_code=500, detail=f"Error SMTP: {str(e)}")
     except OSError:
-        raise HTTPException(status_code=503, detail=f"Error de red: Puerto {smtp_port} bloqueado por el hosting.")
+        raise HTTPException(
+            status_code=503, 
+            detail=f"Error de red: Puerto {smtp_port} bloqueado por el hosting (Network unreachable)."
+        )
 
 
 @router.post("/enviar-correo-prueba")
@@ -83,22 +91,8 @@ def enviar_correo_prueba(request: EmailRequest):
             "q rollo pa, soy fastapi y te estoy enviando este correo de prueba"
         )
         return {"status": "sent"}
-
-    except smtplib.SMTPAuthenticationError:
-        raise HTTPException(
-            status_code=401,
-            detail="Error de autenticacion con el servidor SMTP"
-        )
-    except OSError as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Error de red: El servidor no puede alcanzar el puerto {smtp_port}. Intenta usar el puerto 465 en las variables de entorno."
-        )
-    except smtplib.SMTPException as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error SMTP: {str(e)}"
-        )
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc() # Esto imprime el error detallado en la consola de Railway
@@ -159,78 +153,32 @@ def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
         codigo_otp = ''.join(secrets.choice(string.digits) for _ in range(6))
         
         # Calcular fecha de expiracion (5 minutos desde ahora)
-        fecha_creacion = datetime.utcnow()
+        fecha_creacion = datetime.now(timezone.utc)
         fecha_expiracion = fecha_creacion + timedelta(minutes=5)
         
         # Crear registro de verificacion OTP en la BD
         verificacion_otp = models.VerificacionOTP(
             email=request.email,
             codigo=codigo_otp,
-            created_at=fecha_creacion,
-            expires_at=fecha_expiracion,
+            created_at=fecha_creacion.replace(tzinfo=None),
+            expires_at=fecha_expiracion.replace(tzinfo=None),
             intentos_restantes=4,
             estado='vigente'
         )
         db.add(verificacion_otp)
         db.commit()
         
-        # Obtener credenciales de variables de entorno
-        email_user = os.getenv("EMAIL_USER")
-        email_pass = os.getenv("EMAIL_PASS")
-        
-        if not email_user or not email_pass:
-            raise HTTPException(
-                status_code=500,
-                detail="Credenciales de email no configuradas"
-            )
-        
-        # Configuracion del servidor SMTP
-        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com").strip()
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        print(f"DEBUG: Enviando OTP a {request.email} via {smtp_server}:{smtp_port}...")
-        
-        # Crear el mensaje de correo
-        message = MIMEMultipart()
-        message["From"] = email_user
-        message["To"] = request.email
-        message["Subject"] = "Codigo de verificacion"
-        
-        # Cuerpo del correo con el codigo OTP
-        body = f"Tu codigo de verificacion es: {codigo_otp}\n\nEste codigo expira en 5 minutos."
-        message.attach(MIMEText(body, "plain"))
-        
-        # Conectar y enviar el correo
-        if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10) as server:
-                server.set_debuglevel(1)
-                server.login(email_user, email_pass)
-                server.send_message(message)
-        else:
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
-                server.set_debuglevel(1)
-                server.starttls()
-                server.login(email_user, email_pass)
-                server.send_message(message)
-        
+        # Usar la funcion base para enviar el OTP
+        _enviar_email_base(
+            request.email,
+            "Codigo de verificacion",
+            f"Tu codigo de verificacion es: {codigo_otp}\n\nEste codigo expira en 5 minutos."
+        )
+
         return {"status": "sent"}
     
     except HTTPException:
         raise
-    except smtplib.SMTPAuthenticationError:
-        raise HTTPException(
-            status_code=401,
-            detail="Error de autenticacion con el servidor SMTP"
-        )
-    except OSError as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Error de red al enviar OTP: No se pudo conectar al servidor de correo. Verifica que el puerto {smtp_port} este permitido."
-        )
-    except smtplib.SMTPException as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error SMTP: {str(e)}"
-        )
     except Exception as e:
         import traceback
         traceback.print_exc() # Esto imprime el error detallado en la consola de Railway
@@ -282,7 +230,8 @@ def verificar_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
             )
         
         # Verificar que el OTP no haya expirado
-        if datetime.utcnow() > otp.expires_at:
+        ahora = datetime.now(timezone.utc).replace(tzinfo=None)
+        if ahora > otp.expires_at:
             otp.estado = 'expirado'
             db.commit()
             raise HTTPException(
