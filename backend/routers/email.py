@@ -71,10 +71,15 @@ def enviar_correo_prueba(request: EmailRequest):
         message.attach(MIMEText(body, "plain"))
 
         # Conectar y enviar el correo
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()  # Inicia la conexion segura
-            server.login(email_user, email_pass)
-            server.send_message(message)
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                server.login(email_user, email_pass)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(email_user, email_pass)
+                server.send_message(message)
 
         return {"status": "sent"}
 
