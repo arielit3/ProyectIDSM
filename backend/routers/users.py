@@ -333,23 +333,6 @@ def modificar_password(
     return {"mensaje": "Contraseña actualizada correctamente"}
 
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from .database import SessionLocal
-from . import models
-
-router = APIRouter()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-
-
 # ────────────────────────────────────────────
 # ENDPOINT DE PRUEBA — Crear usuario administrador
 # ────────────────────────────────────────────
