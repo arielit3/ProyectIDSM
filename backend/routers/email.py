@@ -73,11 +73,13 @@ def enviar_correo_prueba(request: EmailRequest):
 
         # Conectar y enviar el correo
         if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10) as server:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
+                server.set_debuglevel(1)  # Activa logs detallados en la consola
                 server.login(email_user, email_pass)
                 server.send_message(message)
         else:
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
+                server.set_debuglevel(1)  # Activa logs detallados en la consola
                 server.starttls()
                 server.login(email_user, email_pass)
                 server.send_message(message)
@@ -195,10 +197,12 @@ def enviar_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
         # Conectar y enviar el correo
         if smtp_port == 465:
             with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10) as server:
+                server.set_debuglevel(1)
                 server.login(email_user, email_pass)
                 server.send_message(message)
         else:
             with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+                server.set_debuglevel(1)
                 server.starttls()
                 server.login(email_user, email_pass)
                 server.send_message(message)
