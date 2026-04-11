@@ -25,11 +25,14 @@ PRODUCTION_ORIGINS = [
     # "https://tudominio.com",
     # "https://www.tudominio.com",
     # "https://app.tudominio.com",
+    "https://toroeats.vercel.app/",
 ]
 
 # Detecta si esta en desarrollo o produccion
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-allow_origins = DEVELOPMENT_ORIGINS if ENVIRONMENT == "development" else PRODUCTION_ORIGINS
+#allow_origins = DEVELOPMENT_ORIGINS if ENVIRONMENT == "development" else PRODUCTION_ORIGINS
+allow_origins = PRODUCTION_ORIGINS
+
 
 # Configuracion de permisos para permitir conexion de front a back
 app.add_middleware(
