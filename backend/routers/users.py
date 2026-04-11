@@ -332,3 +332,62 @@ def modificar_password(
     db.refresh(current_user)
     return {"mensaje": "Contraseña actualizada correctamente"}
 
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from .database import SessionLocal
+from . import models
+
+router = APIRouter()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+
+
+# ────────────────────────────────────────────
+# ENDPOINT DE PRUEBA — Crear usuario administrador
+# ────────────────────────────────────────────
+
+@router.post("/init-admin")
+def crear_admin(db: Session = Depends(get_db)):
+    # verificar si ya existe un usuario con ese correo
+    existente = db.query(models.Usuario).filter(
+        models.Usuario.correo == "toritoseats@gmail.com"
+    ).first()
+    if existente:
+        return {"mensaje": "Ya existe el usuario administrador", "id": existente.id}
+
+    # crear la relación de credenciales
+    relacion = models.UsuarioRelacion(
+        matricula=999999,  # número fijo de prueba
+        password=hash_password("Asiel1234"),  # contraseña de prueba
+        rol="administrador",  # rol administrador
+        estado=1
+    )
+    db.add(relacion)
+    db.flush()  # obtener el ID antes de crear el usuario
+
+    # crear el usuario principal
+    admin = models.Usuario(
+        apodo="admin",
+        nombre="Administrador",
+        correo="toritoseats@gmail.com",
+        telefono="0000000000",
+        usuario_relacion_id=relacion.id
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+
+    return {
+        "mensaje": "Usuario administrador creado correctamente",
+        "id": admin.id,
+        "correo": admin.correo,
+        "rol": relacion.rol
+    }
