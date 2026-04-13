@@ -15,10 +15,10 @@ La solucion planteada se basa en el desarrollo de una aplicacion web llamada Tor
 * DataBase - PostgreSQL 
 
 ## Api's Integradas:
-* Api interna SMTP para envio de correos electronicos
-* Api Recaptcha
-* Api de Google Maps
-* Api Fonts
+* Api interna - SMTP para envio de correos electronicos
+* Api Recaptcha - Comprobamos que el usuario no sea un robot
+* Api Leaflet - Api de codigo abierto para maps
+* Api Google Fonts - Estilos especiales en el titulo
 
 ## Protocolo/Metodologia de trabajo:
 * 

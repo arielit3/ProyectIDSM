@@ -528,7 +528,9 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
       <div className="hero-section">
         <div className="hero-content">
           <div className="hero-text">
-            <h1 className="hero-title">Bienvenido, {displayName}!</h1>
+            <h1 className="hero-title">
+              Bienvenido, {displayName}!
+            </h1>
             <p className="hero-description">
               Explora los mejores productos de ToroEats
             </p>

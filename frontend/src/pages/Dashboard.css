@@ -357,61 +357,7 @@
   transform: translateX(5px);
 }
 
-/* ===== 8. SCROLLBAR PERSONALIZADO ===== */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-light);
-  border-radius: var(--border-radius-full);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--primary-green);
-  border-radius: var(--border-radius-full);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-green-dark);
-}
-
-/* ============================================================================
-   ADMIN DASHBOARD - ESTILOS EXCLUSIVOS PARA ADMINISTRADORES
-   ============================================================================ */
-
-.admin-dashboard {
-  padding: 20px 0;
-}
-
-/* Header del Admin */
-.admin-header {
-  background-color: var(--primary-green);
-  border-radius: var(--border-radius-lg);
-  padding: 30px;
-  color: white;
-  margin-bottom: 30px;
-  box-shadow: var(--shadow-md);
-  border-bottom: 4px solid var(--accent-yellow);
-}
-
-.admin-welcome h1 {
-  font-size: 2rem;
-  margin-bottom: 8px;
-  color: white;
-}
-
-.admin-subtitle {
-  font-size: 1rem;
-  margin-bottom: 24px;
-  opacity: 0.9;
-}
-
-.admin-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 20px;
+/* ===== px;
 }
 
 /* Stats Cards */
