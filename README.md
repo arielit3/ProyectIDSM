@@ -20,7 +20,14 @@ La solucion planteada se basa en el desarrollo de una aplicacion web llamada Tor
 * Api Leaflet - Api de codigo abierto para maps
 * Api Google Fonts - Estilos especiales en el titulo
 
-## Protocolo/Metodologia de trabajo:
-* 
+## Protocolos:
+* JWT (json web tokens) - Protocolo usad para el manejo de sesiones de usuario guardando el token en localstorage.
+* OTP (one-time Password) - Protocolo de verificacion de identidad.
+* Cifrado de datos:
+    * Bcrypt para el hash de contraseñas en la base de datos asi nunca se guarda en texto plano.
+    * SHA-256 implementado para la privacidad de los mensajes entre compradores y vendedores.
+
+* CORS (Cross-Origin Resource Sharing) - Protocolo de seguridad usado para establecer permisos de conexion, asi desde el backend permitimos la conexion de el frontend de forma segura para render.
+* SMTP (Simple Mail Transfer Protocol) - Protocolo usado para el envio de correos electronicos, en este caso parte de el OTP.
 
 ##

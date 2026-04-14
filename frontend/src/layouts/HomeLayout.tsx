@@ -47,7 +47,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ //Se extraen las props directam
     };
 
     // Definimos la posición con el tipo correcto para TypeScript
-    const posicion: LatLngExpression = [31.6200, -106.4000];
+    const posicion: LatLngExpression = [31.6165, -106.3975];
     
     return ( //Se retorna el JSX
         <div className="homeLayout"> 
@@ -84,7 +84,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ //Se extraen las props directam
                         onClick={() => setModalMapaAbierto(true)}
                         style={{ background: 'none', border: 'none', color: '#333', cursor: 'pointer', textDecoration: 'underline', fontSize: '14px' }}
                     >
-                        📍 Ver nuestra ubicación
+                         Ver nuestra ubicación
                     </button>
                 </div>
             </main>
@@ -100,7 +100,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ //Se extraen las props directam
                         
                         <div style={{ height: '300px', width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '15px', border: '1px solid #ddd' }}>
                             <MapContainer 
-                                center={posicion} 
+                                center={posicion}
                                 zoom={16} 
                                 style={{ height: '100%', width: '100%' }}
                             >
