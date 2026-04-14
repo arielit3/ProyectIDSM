@@ -136,6 +136,14 @@ body {
     transform: translateY(0);
 }
 
+.loginButton:disabled {
+    /* esto se modifico debido a que el boton debe verse bloqueado cuando faltan campos */
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 .registerSection {
     text-align: center;
     margin-top: 16px;

@@ -4242,3 +4242,147 @@
     transform: translateX(-50%);
   }
 }
+
+.estado-badge.aceptado,
+.estado-badge.aprobado,
+.estado-badge.resuelto {
+  background-color: #27ae60;
+}
+
+.estado-badge.rechazado {
+  background-color: #e74c3c;
+}
+
+.estado-badge.entregado,
+.estado-badge.completado {
+  background-color: #16a085;
+}
+
+.comprador-dashboard .hero-section {
+  margin-bottom: 32px;
+}
+
+.comprador-dashboard .section-title {
+  margin-bottom: 20px;
+}
+
+.comprador-dashboard .solicitudes-section,
+.comprador-dashboard .categorias-section,
+.comprador-dashboard .productos-section {
+  margin-bottom: 28px;
+}
+
+.comprador-dashboard .top-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 0;
+}
+
+.comprador-dashboard .top-actions > * {
+  min-width: 0;
+}
+
+.comprador-dashboard .notificaciones-container {
+  justify-self: start;
+}
+
+.comprador-dashboard .btn-solicitar-vendedor {
+  justify-self: end;
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  line-height: 1.25;
+  white-space: normal;
+  word-break: break-word;
+  text-align: center;
+  margin: 0;
+}
+
+.comprador-dashboard .empty-state {
+  padding: 52px 24px;
+}
+
+.admin-dashboard .solicitudes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.admin-dashboard .solicitud-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 20px;
+}
+
+.admin-dashboard .solicitud-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px 12px;
+  margin-bottom: 0;
+}
+
+.admin-dashboard .solicitud-nombre {
+  min-width: 0;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.admin-dashboard .solicitud-header .estado-badge {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.admin-dashboard .solicitud-body {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.admin-dashboard .solicitud-body p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-dashboard .solicitud-actions {
+  margin-top: auto;
+}
+
+@media (max-width: 1024px) {
+  .comprador-dashboard .top-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .comprador-dashboard .notificaciones-container {
+    justify-self: stretch;
+  }
+
+  .comprador-dashboard .btn-solicitar-vendedor {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard .solicitudes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comprador-dashboard .top-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .comprador-dashboard .btn-solicitar-vendedor {
+    width: 100%;
+  }
+}

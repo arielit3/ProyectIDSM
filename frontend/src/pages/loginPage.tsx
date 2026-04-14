@@ -13,12 +13,26 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = React.useState("");//contrasena ingresada por el usuario
   const [mensaje, setMensaje] = React.useState(""); //mensaje de error o exito para mostrar al usuario despues de intentar iniciar sesion
   const [mensajeColor, setMensajeColor] = React.useState("red");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  // esto se modifico debido a que no debe enviar si falta algun campo obligatorio
+  const emailLimpio = email.trim();
+  const passwordLimpio = password.trim();
+  const formValido = emailLimpio.length > 0 && passwordLimpio.length > 0;
 
   //FUNCIONE DE ENVIO
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // esto se modifico debido a que se debe bloquear el submit cuando faltan datos
+    if (!formValido) {
+      setMensaje("Debes llenar correo y contrasena antes de iniciar sesion");
+      setMensajeColor("red");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      const data = await login(email, password);
+      const data = await login(emailLimpio, passwordLimpio);
       setMensaje("Login exitoso");
       setMensajeColor("green");
 
@@ -32,6 +46,8 @@ const LoginPage: React.FC = () => {
       setMensaje(detalleError);
       setMensajeColor("red");
       console.error("Error en login:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -53,7 +69,11 @@ const LoginPage: React.FC = () => {
               type="email"
               id="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setMensaje("");
+              }}
+              required
             />
           </div>
 
@@ -63,18 +83,23 @@ const LoginPage: React.FC = () => {
               type="password"
               id="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setMensaje("");
+              }}
+              required
             />
           </div>
 
-          <button type="submit" className="loginButton">
-            Iniciar Sesion
+          <button type="submit" className="loginButton" disabled={!formValido || isSubmitting}>
+            {isSubmitting ? "Iniciando..." : "Iniciar Sesion"}
           </button>
 
           <div className="registerSection">
             <p className="registerText">No tienes cuenta?</p>
             <button
               className="registerButton"
+              type="button"
               onClick={() => navigate("/register")}
             >
               Registrate
