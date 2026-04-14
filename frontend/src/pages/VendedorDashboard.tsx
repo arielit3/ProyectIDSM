@@ -185,10 +185,9 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   //Construye la URL para acceder a una imagen guardada
   const getImagenUrl = (imagenNombre: string | null): string | null => {
     if (!imagenNombre) return null;
-    
-    /* limpiamos la url de la api para evitar errores de ruta */
-    const apiLimpia = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
-    return `${apiLimpia}/uploads/productos/${imagenNombre}`;
+    // normalizamos la ruta para evitar errores con las barras
+    const base = API_URL.replace(/\/+$/, "");
+    return `${base}/uploads/productos/${imagenNombre}`;
   };
 
   //Resetea el formulario a sus valores iniciales

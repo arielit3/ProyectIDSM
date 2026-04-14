@@ -7,7 +7,11 @@ import os
 
 #:> Este archivo levanta FastAPI y conecta rutas y archivos subidos
 app = FastAPI()
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# usamos ruta absoluta para que railway no se confunda de carpeta
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_PATH = os.path.join(BASE_DIR, "uploads")
+app.mount("/uploads", StaticFiles(directory=UPLOAD_PATH), name="uploads")
 
 from database import Base, engine
 import models

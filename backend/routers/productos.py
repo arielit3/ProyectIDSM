@@ -13,8 +13,9 @@ from deps import get_db, get_current_user
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
-# usamos una ruta simple para que coincida con el montaje de archivos estaticos
-UPLOAD_DIR = "uploads/productos"
+# ruta absoluta para que coincida con main.py
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "productos")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -275,6 +276,20 @@ def eliminar_producto(
             imagen_path = os.path.join(UPLOAD_DIR, producto.imagen_nombre)
             if os.path.exists(imagen_path):
                 os.remove(imagen_path)
+        
+        # borramos todo lo que este amarrado al producto para que deje borrarlo
+        db.query(models.Favorito).filter(models.Favorito.producto_id == producto_id).delete()
+        
+        # sacamos las ventas para limpiar sus mensajes y avisos
+        ventas = db.query(models.Venta).filter(models.Venta.producto_id == producto_id).all()
+        ventas_ids = [v.id for v in ventas]
+        
+        if ventas_ids:
+            db.query(models.MensajeSolicitud).filter(models.MensajeSolicitud.solicitud_id.in_(ventas_ids)).delete(synchronize_session=False)
+            db.query(models.Notificacion).filter(models.Notificacion.venta_id.in_(ventas_ids)).delete(synchronize_session=False)
+            db.query(models.Venta).filter(models.Venta.id.in_(ventas_ids)).delete(synchronize_session=False)
+
+        db.query(models.Notificacion).filter(models.Notificacion.producto_id == producto_id).delete()
         
         db.delete(producto)
         db.commit()

@@ -4092,14 +4092,15 @@
     width: 100%;
   }
 
-  /* ajustamos el boton para que sea chico y centrado como los de categorias */
   .comprador-dashboard .btn-solicitar-vendedor {
+    /* ahora si se ve igual que los botones de las tarjetas */
     width: auto;
-    align-self: center;
-    padding: 10px 16px;
-    font-size: 0.9rem;
+    padding: 10px 18px;
+    font-size: 0.85rem;
+    border-radius: var(--border-radius-md);
+    margin: 0 auto 15px;
     display: inline-block;
-    margin: 0 auto;
+    height: auto;
     min-height: unset;
   }
 

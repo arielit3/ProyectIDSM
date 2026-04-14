@@ -488,9 +488,9 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   //Construye la URL completa para acceder a una imagen guardada
   const getImagenUrl = (imagenNombre: string | null): string | null => {
     if (!imagenNombre) return null;
-    /* quitamos la barra del final si existe para no duplicar */
-    const apiLimpia = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
-    return `${apiLimpia}/uploads/productos/${imagenNombre}`;
+    // limpiamos bien la url para que no salgan diagonales dobles
+    const base = API_URL.replace(/\/+$/, "");
+    return `${base}/uploads/productos/${imagenNombre}`;
   };
 
   //Obtiene el nombre del vendedor de un producto, se utiliza para mostrarlo en
