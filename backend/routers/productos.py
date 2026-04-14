@@ -280,14 +280,41 @@ def eliminar_producto(
         # borramos todo lo que este amarrado al producto para que deje borrarlo
         db.query(models.Favorito).filter(models.Favorito.producto_id == producto_id).delete()
         
-        # sacamos las ventas para limpiar sus mensajes y avisos
-        ventas = db.query(models.Venta).filter(models.Venta.producto_id == producto_id).all()
-        ventas_ids = [v.id for v in ventas]
-        
-        if ventas_ids:
-            db.query(models.MensajeSolicitud).filter(models.MensajeSolicitud.solicitud_id.in_(ventas_ids)).delete(synchronize_session=False)
-            db.query(models.Notificacion).filter(models.Notificacion.venta_id.in_(ventas_ids)).delete(synchronize_session=False)
-            db.query(models.Venta).filter(models.Venta.id.in_(ventas_ids)).delete(synchronize_session=False)
+        # esto se modifico debido a que Venta no tiene producto_id, todo cuelga de SolicitudProducto
+        solicitudes = db.query(models.SolicitudProducto).filter(
+            models.SolicitudProducto.producto_id == producto_id
+        ).all()
+        solicitudes_ids = [s.id for s in solicitudes]
+
+        if solicitudes_ids:
+            # esto se modifico debido a que los mensajes se relacionan por solicitud_id
+            db.query(models.MensajeSolicitud).filter(
+                models.MensajeSolicitud.solicitud_id.in_(solicitudes_ids)
+            ).delete(synchronize_session=False)
+
+            # esto se modifico debido a que las ventas se relacionan por solicitud_id
+            ventas = db.query(models.Venta).filter(
+                models.Venta.solicitud_id.in_(solicitudes_ids)
+            ).all()
+            ventas_ids = [v.id for v in ventas]
+
+            # esto se modifico debido a que primero debemos limpiar notificaciones amarradas a venta o solicitud
+            if ventas_ids:
+                db.query(models.Notificacion).filter(
+                    models.Notificacion.venta_id.in_(ventas_ids)
+                ).delete(synchronize_session=False)
+
+            db.query(models.Notificacion).filter(
+                models.Notificacion.solicitud_id.in_(solicitudes_ids)
+            ).delete(synchronize_session=False)
+
+            # esto se modifico debido a que primero se borran ventas y luego solicitudes para respetar FKs
+            db.query(models.Venta).filter(
+                models.Venta.solicitud_id.in_(solicitudes_ids)
+            ).delete(synchronize_session=False)
+            db.query(models.SolicitudProducto).filter(
+                models.SolicitudProducto.id.in_(solicitudes_ids)
+            ).delete(synchronize_session=False)
 
         db.query(models.Notificacion).filter(models.Notificacion.producto_id == producto_id).delete()
         
