@@ -13,10 +13,8 @@ from deps import get_db, get_current_user
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
-# ruta absoluta para que no se pierdan las fotos segun donde corras el server
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "productos")
-
+# usamos una ruta simple para que coincida con el montaje de archivos estaticos
+UPLOAD_DIR = "uploads/productos"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
