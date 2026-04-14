@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 // IMPORTACIONES PARA EL MAPA (LEAFLET API)
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import L, { type LatLngExpression } from 'leaflet';
 
 // Solución para iconos de marcadores en React/Vite
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -30,7 +30,7 @@ interface HomeLayoutProps {
 //Se crea la constante de HomeLayout que usa las props ya definidas
 const HomeLayout: React.FC<HomeLayoutProps> = ({ //Se extraen las props directamente
     pageTitle = "Bienvenido a ToroEats", //Valores de las props
-    imageSrc = "/public/ToroEats-removebg-preview.png",
+    imageSrc = "/ToroEats-removebg-preview.png",
     buttonText = "Comenzar",
     onGetStartedClick,
 }) => {
@@ -45,6 +45,9 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ //Se extraen las props directam
             navigate("/login");
         }
     };
+
+    // Definimos la posición con el tipo correcto para TypeScript
+    const posicion: LatLngExpression = [31.6200, -106.4000];
     
     return ( //Se retorna el JSX
         <div className="homeLayout"> 
@@ -97,15 +100,15 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ //Se extraen las props directam
                         
                         <div style={{ height: '300px', width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '15px', border: '1px solid #ddd' }}>
                             <MapContainer 
-                                center={[31.6200, -106.4000]} 
+                                center={posicion} 
                                 zoom={16} 
                                 style={{ height: '100%', width: '100%' }}
                             >
                                 <TileLayer
                                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                    attribution='&copy; OpenStreetMap'
                                 />
-                                <Marker position={[31.6200, -106.4000]}>
+                                <Marker position={posicion}>
                                     <Popup>¡Aquí cocinamos lo mejor!</Popup>
                                 </Marker>
                             </MapContainer>
