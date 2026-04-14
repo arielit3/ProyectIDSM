@@ -4091,6 +4091,11 @@
   .comprador-dashboard .notificaciones-container,
   .comprador-dashboard .btn-solicitar-vendedor {
     width: 100%;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    height: auto;
+    min-height: 45px;
+    display: block;
   }
 
   .comprador-dashboard .campana-btn {

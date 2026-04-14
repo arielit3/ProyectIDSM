@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles #Para las imagenes estaticas
 
 import os
 
-#:> Este archivo levanta FastAPI y conecta middleware, rutas y archivos subidos
+#:> Este archivo levanta FastAPI y conecta rutas y archivos subidos
 app = FastAPI()
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
