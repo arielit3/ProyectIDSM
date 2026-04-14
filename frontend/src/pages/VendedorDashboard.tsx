@@ -185,9 +185,12 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
   //Construye la URL para acceder a una imagen guardada
   const getImagenUrl = (imagenNombre: string | null): string | null => {
     if (!imagenNombre) return null;
+    console.log("VendedorDashboard - Solicitando imagen:", imagenNombre);
     // normalizamos la ruta para evitar errores con las barras
     const base = API_URL.replace(/\/+$/, "");
-    return `${base}/uploads/productos/${imagenNombre}`;
+    const fullUrl = `${base}/uploads/productos/${imagenNombre}`;
+    console.log("VendedorDashboard - URL generada:", fullUrl);
+    return fullUrl;
   };
 
   //Resetea el formulario a sus valores iniciales
@@ -836,7 +839,11 @@ const VendedorDashboard: React.FC<VendedorDashboardProps> = ({ user }) => {
                   {/* Imagen del producto */}
                   <div className="producto-gestion-imagen">
                     {producto.imagen_nombre ? (
-                      <img src={getImagenUrl(producto.imagen_nombre) || ''} alt={producto.nombre} />
+                      <img 
+                        src={getImagenUrl(producto.imagen_nombre) || ''} 
+                        alt={producto.nombre} 
+                        onError={(e) => console.error("Error en gestión de vendedor al cargar:", e.currentTarget.src)}
+                      />
                     ) : <span>📷</span>}
                   </div>
                   

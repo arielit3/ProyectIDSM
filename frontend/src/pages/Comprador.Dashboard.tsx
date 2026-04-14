@@ -488,9 +488,12 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
   //Construye la URL completa para acceder a una imagen guardada
   const getImagenUrl = (imagenNombre: string | null): string | null => {
     if (!imagenNombre) return null;
+    console.log("Generando URL para imagen:", imagenNombre);
     // limpiamos bien la url para que no salgan diagonales dobles
     const base = API_URL.replace(/\/+$/, "");
-    return `${base}/uploads/productos/${imagenNombre}`;
+    const finalUrl = `${base}/uploads/productos/${imagenNombre}`;
+    console.log("URL Final construida:", finalUrl);
+    return finalUrl;
   };
 
   //Obtiene el nombre del vendedor de un producto, se utiliza para mostrarlo en
@@ -719,6 +722,10 @@ const CompradorDashboard: React.FC<CompradorDashboardProps> = ({ user, terminoBu
                     <img 
                       src={getImagenUrl(producto.imagen_nombre) || ''} 
                       alt={producto.nombre}
+                      onError={(e) => {
+                        console.error(`Error cargando imagen para el producto: ${producto.nombre}`);
+                        console.error(`Path fallido: ${e.currentTarget.src}`);
+                      }}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
