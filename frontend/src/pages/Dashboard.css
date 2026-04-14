@@ -4290,16 +4290,23 @@
 }
 
 .comprador-dashboard .btn-solicitar-vendedor {
+  /* esto se modifico debido a que el boton se estaba estirando de forma incorrecta en movil */
   justify-self: end;
   width: auto;
   max-width: 100%;
-  min-height: 44px;
-  padding: 10px 16px;
+  height: 46px;
+  min-height: 46px;
+  max-height: 46px;
+  padding: 0 16px;
   line-height: 1.25;
   white-space: normal;
   word-break: break-word;
   text-align: center;
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
 }
 
 .comprador-dashboard .empty-state {
@@ -4364,8 +4371,12 @@
   }
 
   .comprador-dashboard .btn-solicitar-vendedor {
+    /* esto se modifico debido a que en tablet el boton tambien debe conservar altura estable */
     justify-self: stretch;
     width: 100%;
+    height: 46px;
+    min-height: 46px;
+    max-height: 46px;
   }
 }
 
@@ -4383,6 +4394,11 @@
   }
 
   .comprador-dashboard .btn-solicitar-vendedor {
+    /* esto se modifico debido a que en movil chico no debe crecer como bloque gigante */
     width: 100%;
+    height: 46px;
+    min-height: 46px;
+    max-height: 46px;
+    padding: 0 14px;
   }
 }
