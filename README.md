@@ -9,6 +9,20 @@ La problematica que se busca solucionar se basa en la falta de un canal tecnolog
 ## Solucion:
 La solucion planteada se basa en el desarrollo de una aplicacion web llamada ToroEats, que funcione como un espacio exclusivo para la publicacion y consulta de productos alimenticios ofrecidos por la comunidad estudiantil. Esta plataforma permitira a los vendedores registrar informacion sobre su producto (nombre, descripcion, precio, fotografia, horario de disponibilidad y puntos de entrega), y asi mismo los compradores tendran acceso a esta informacion de forma organizada, confiable y segura. Con esto se busca fomentar el emprendimiento estudiantil, optimizar la experiencia de los estudiantes en cuanto a el proceso de compra de alimentos, ademas de el hecho de buscar cubrir estas necesidades alimenticias sin afectar los tiempos de clase o actividades academicas.
 
+## Requerimientos Funcionales:
+* Acceso institucional: Registro exclusivo para correos *@utcj.edu.mx* con validacion obligatoria.
+* Gestion de roles: Administrar los roles de forma que cada uno cuente con permisos y contenido independiente.
+* Comercio de productos: Se tiene la posibilidad de publicar productos con imagenes, indicar una cantidad, crear una solicitud de compra y se puede confirmar la entrega, ademas de comunicacion entre vendedor y comprador.
+* Comunicacion segura: Chat privado entre comprador y vendedor con *mensajes cifrados*.
+* Control de administrador: Validacion de nuevos vendedores, gestion de reportes, aplicacion de sanciones.
+
+## Requerimientos No Funcionales:
+* Proteccion de datos: Uso de *Bcrypt* para contrasenas y *SHA-256* para la privacidad de conversaciones.
+* Arquitectura moderna: FrontEnd modular en React y backend eficiente en FastAPI.
+* Diseno(UX/UI): Interfaz responsiva e integracion de navegacion intuitiva.
+* Eficiencia: Optimizacion de recursos como imagenes, ademas de integracion correcta ApiREST.
+* Escalabilidad: Base de datos en *PostgreSQL* basada en Normalizacion 3FN.
+
 ## Tecnologias en el proyecto 
 * Backend - FastAPI (extension a Swagger UI)
 * Frontend - React (TypeScript, Vite)
@@ -30,4 +44,3 @@ La solucion planteada se basa en el desarrollo de una aplicacion web llamada Tor
 * CORS (Cross-Origin Resource Sharing) - Protocolo de seguridad usado para establecer permisos de conexion, asi desde el backend permitimos la conexion de el frontend de forma segura para render.
 * SMTP (Simple Mail Transfer Protocol) - Protocolo usado para el envio de correos electronicos, en este caso parte de el OTP.
 
-##
