@@ -47,7 +47,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ //Se extraen las props directam
     };
 
     // Definimos la posición con el tipo correcto para TypeScript
-    const posicion: LatLngExpression = [31.6165, -106.3975];
+    const posicion: LatLngExpression = [31.5995389, -106.4093861];
     
     return ( //Se retorna el JSX
         <div className="homeLayout"> 
