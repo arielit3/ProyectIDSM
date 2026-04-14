@@ -247,14 +247,14 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border: none;
-  color: white;
+  color: white !important; /* Fuerza el color blanco sobre los estilos de las tablas */
 }
 
-.role-badge.admin {
+.role-badge.administrador {
   background-color: #667eea;
 }
 
-.role-badge.comprador {
+.role-badge.cliente {
   background-color: var(--primary-green);
 }
 

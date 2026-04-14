@@ -95,8 +95,8 @@ const DashboardPage: React.FC = () => {
   //Renderiza una etiqueta con el nombre del rol del usuario con estilos diferentes para cada rol
   const getRoleBadge = (rol?: string) => {
     switch (rol) {
-      case "administrador": return <span className="role-badge admin">Administrador</span>;
-      case "cliente":       return <span className="role-badge comprador">Comprador</span>;
+      case "administrador": return <span className="role-badge administrador">Administrador</span>;
+      case "cliente":       return <span className="role-badge cliente">Comprador</span>;
       case "vendedor":      return <span className="role-badge vendedor">Vendedor</span>;
       default:              return <span className="role-badge">Usuario</span>;
     }
