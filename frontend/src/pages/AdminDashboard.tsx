@@ -259,9 +259,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Cargar datos al montar el componente 
   useEffect(() => {
-    onListarUsuarios();
     cargarResumenPanel();
-  }, [onListarUsuarios, cargarResumenPanel]);
+  }, [cargarResumenPanel]);
 
   useEffect(() => {
     if (tabActiva === "solicitudes") {

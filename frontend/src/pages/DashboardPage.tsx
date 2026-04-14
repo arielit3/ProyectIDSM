@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   listarUsuarios,
   obtenerUsuarioActual,
@@ -41,14 +41,14 @@ const DashboardPage: React.FC = () => {
   };
   //obtiene la lista de todos los usuarios del sistema,
   //se usa en el dashboard de administrador para mostrar las estadísticas y la tabla de usuarios
-  const handleListarUsuarios = async () => {
+  const handleListarUsuarios = useCallback(async () => {
     try {
       const data = await listarUsuarios();
       setUsuarios(data);
     } catch (error) {
       console.error("Error al listar usuarios", error);
     }
-  };
+  }, []);
 
     //actualiza los datos del usuario autenticado, se usa en el dashboard de administrador para actualizar el perfil
   const handleUpdateUser = async (updatedData: UpdateUserData) => {
